@@ -1,0 +1,862 @@
+[
+  {
+    "run_at": "2026-06-27T14:43:13.225014Z",
+    "month": "january",
+    "year": 2025,
+    "status": "dry-run",
+    "totals_url": "https://files.digital.nhs.uk/DD/BA8969/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/A8/5BFA19/gp-reg-pat-prac-map.csv",
+    "practices_ingested": null,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T14:43:20.669728Z",
+    "month": "january",
+    "year": 2025,
+    "status": "dry-run",
+    "totals_url": "https://files.digital.nhs.uk/DD/BA8969/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/A8/5BFA19/gp-reg-pat-prac-map.csv",
+    "practices_ingested": null,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T16:09:37.664308Z",
+    "month": "january",
+    "year": 2015,
+    "status": "failed",
+    "totals_url": null,
+    "mapping_url": null,
+    "practices_ingested": null,
+    "error": "Could not resolve expected link(s): mapping"
+  },
+  {
+    "run_at": "2026-06-27T16:10:27.175327Z",
+    "month": "january",
+    "year": 2015,
+    "status": "failed",
+    "totals_url": null,
+    "mapping_url": null,
+    "practices_ingested": null,
+    "error": "Could not resolve expected link(s): mapping"
+  },
+  {
+    "run_at": "2026-06-27T16:11:43.335892Z",
+    "month": "january",
+    "year": 2015,
+    "status": "dry-run",
+    "totals_url": "https://files.digital.nhs.uk/publicationimport/pub16xxx/pub16357/gp_practice_counts.csv",
+    "mapping_url": "https://files.digital.nhs.uk/publicationimport/pub16xxx/pub16357/gp_practice_counts.csv",
+    "practices_ingested": null,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T16:22:35.739382Z",
+    "month": "january",
+    "year": 2020,
+    "status": "dry-run",
+    "totals_url": "https://files.digital.nhs.uk/99/C31654/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/71/58A58E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": null,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T16:22:54.313174Z",
+    "month": "january",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/99/C31654/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/71/58A58E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6822,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:48.677422Z",
+    "month": "january",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/99/C31654/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/71/58A58E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6822,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:49.308734Z",
+    "month": "february",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/0E/2A4B6E/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/86/7F1256/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6813,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:49.910594Z",
+    "month": "march",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/6D/E6F49F/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/FB/9D85DC/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6801,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:50.600832Z",
+    "month": "april",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/00/F10583/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/FA/20733E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6797,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:51.313135Z",
+    "month": "may",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/C4/3A7038/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/2A/1C7FF1/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6778,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:52.041382Z",
+    "month": "june",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/BA/EEB621/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/2F/9556F0/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6761,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:52.737414Z",
+    "month": "july",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/7A/3BE42D/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/6D/FC3552/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6743,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:53.377803Z",
+    "month": "august",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/63/EDDBA7/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/15/CF7137/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6717,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:54.151470Z",
+    "month": "september",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/0F/3AD227/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/52/73E388/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6708,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:54.947732Z",
+    "month": "october",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/C4/648996/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/76/DE7ED0/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6697,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:55.701115Z",
+    "month": "november",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/30/2C82C0/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/74/DC37EF/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6683,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:56.384431Z",
+    "month": "december",
+    "year": 2020,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/5C/01ABD6/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/F8/25DA87/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6672,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:57.223129Z",
+    "month": "january",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/6F/0794D8/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/3A/ECBAEE/gp-reg-pat-prac-map_v2.csv",
+    "practices_ingested": 6658,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:58.059449Z",
+    "month": "february",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/2E/CDE17D/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/7C/C385E7/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6638,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:58.965911Z",
+    "month": "march",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/6B/86021E/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/BE/04EBB8/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6626,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:49:59.811904Z",
+    "month": "april",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/12/11C4D4/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/EB/510417/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6623,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:00.732646Z",
+    "month": "may",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/30/2C2E37/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/24/2F1356/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6609,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:01.521846Z",
+    "month": "june",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/40/2232E5/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/EA/E45667/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6601,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:02.357226Z",
+    "month": "july",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/90/44C6CB/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/39/02EEF8/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6587,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:03.261244Z",
+    "month": "august",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/79/6BA69C/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/CE/7840CC/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6567,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:04.149966Z",
+    "month": "september",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/20/BD4BF1/gp-reg-pat-prac-all-v2.csv",
+    "mapping_url": "https://files.digital.nhs.uk/65/3454B2/gp-reg-pat-prac-map-v2.csv",
+    "practices_ingested": 6563,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:05.092168Z",
+    "month": "october",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/20/639D68/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/4E/3EA575/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6554,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:05.936984Z",
+    "month": "november",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/CF/CAA883/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/94/038046/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6547,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:06.879867Z",
+    "month": "december",
+    "year": 2021,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/D9/7AF7E5/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/65/448BED/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6535,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:07.938911Z",
+    "month": "january",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/93/7FD5E8/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/CB/2E3F45/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6527,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:08.839345Z",
+    "month": "february",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/A0/52D736/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/0A/99DB09/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6522,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:09.802174Z",
+    "month": "march",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/1E/A750DE/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/20/0426D0/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6522,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:10.802652Z",
+    "month": "april",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/29/5C5E16/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/C0/F51085/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6518,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:11.641133Z",
+    "month": "may",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/91/255D0D/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/FA/9CB056/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6506,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:12.654509Z",
+    "month": "june",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/FD/049B54/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/E3/2995B5/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6495,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:13.974206Z",
+    "month": "july",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/EA/516B96/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/96/69FA3D/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6484,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:15.211839Z",
+    "month": "august",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/B7/544618/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/86/234571/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6463,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:16.473423Z",
+    "month": "september",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/08/2AF812/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/61/E32979/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6459,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:17.601059Z",
+    "month": "october",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/49/508EDB/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/1F/9ACF6B/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6454,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:18.791425Z",
+    "month": "november",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/1E/980EA4/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/FD/FAEB8E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6446,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:19.996047Z",
+    "month": "december",
+    "year": 2022,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/D7/73169E/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/A3/AB8ECB/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6444,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:21.373428Z",
+    "month": "january",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/ED/C675EF/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/60/09F358/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6437,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:22.669459Z",
+    "month": "february",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/7C/D10294/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/69/EA451D/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6425,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:23.894630Z",
+    "month": "march",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/64/D830C6/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/11/CE90B4/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6422,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:25.248324Z",
+    "month": "april",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/87/E03B72/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/02/1CE41C/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6419,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:27.806329Z",
+    "month": "may",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/F1/3E4D66/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/11/9809CA/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6402,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:29.477929Z",
+    "month": "june",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/AF/9B0FC8/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/DE/CFC11C/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6386,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:30.843623Z",
+    "month": "july",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/19/AADF93/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/2C/59030E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6378,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:32.304449Z",
+    "month": "august",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/CA/B026C9/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/94/E363FC/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6362,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:33.683125Z",
+    "month": "september",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/5C/0C3806/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/00/F33282/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6353,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:35.063054Z",
+    "month": "october",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/91/DBC57F/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/87/8DF2E1/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6350,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:36.621870Z",
+    "month": "november",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/A5/9FA179/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/52/2E46FD/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6336,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:38.226482Z",
+    "month": "december",
+    "year": 2023,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/3B/B0AB30/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/9F/1C67F8/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6328,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:39.643722Z",
+    "month": "january",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/6D/F296C9/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/40/196B8A/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6325,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:41.193387Z",
+    "month": "february",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/E1/956EEE/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/99/CE5F7E/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6317,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:42.490298Z",
+    "month": "march",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/E7/BD21B4/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/00/68CF21/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6313,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:43.945607Z",
+    "month": "april",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/7C/902806/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/31/A5EE4A/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6309,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:45.343442Z",
+    "month": "may",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/C1/9B13E8/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/35/994289/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6301,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:46.835349Z",
+    "month": "june",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/DE/260DE5/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/AB/44D518/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6295,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:48.760724Z",
+    "month": "july",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/72/D18B98/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/11/9859A5/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6286,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:50.264861Z",
+    "month": "august",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/DE/9E7A2C/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/7D/977F0C/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6275,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:51.815017Z",
+    "month": "september",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/1F/88F23F/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/94/AF0A24/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6269,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:53.209298Z",
+    "month": "october",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/D6/6FD106/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/12/9C8769/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6267,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:54.729494Z",
+    "month": "november",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/F1/FEDE3D/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/F6/054097/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6254,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:56.405714Z",
+    "month": "december",
+    "year": 2024,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/02/7C75DA/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/BD/E870A0/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6250,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:58.027305Z",
+    "month": "january",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/DD/BA8969/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/A8/5BFA19/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6249,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:50:59.809103Z",
+    "month": "february",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/C3/A8CF68/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/82/64EFA6/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6245,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:01.276249Z",
+    "month": "march",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/1F/80EABA/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/80/DD30F6/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6242,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:02.877418Z",
+    "month": "april",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/D8/43E530/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/E2/1DCD29/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6239,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:04.584960Z",
+    "month": "may",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/ED/ACAEEB/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/8B/514C6B/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6231,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:06.322877Z",
+    "month": "june",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/B8/EEA2A9/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/C7/7C4BED/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6215,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:08.182529Z",
+    "month": "july",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/06/AFB25B/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/63/EF332E/gp-reg-pat-prac-map.csv",
+    "practices_ingested": 6209,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:09.883147Z",
+    "month": "august",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/58/2B03BE/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/49/FD6023/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6205,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:11.574948Z",
+    "month": "september",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/B6/8BA01B/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/04/1A6A56/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6204,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:13.310828Z",
+    "month": "october",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/6E/8CAFEE/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/01/C9AED8/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6202,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:14.937223Z",
+    "month": "november",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/EB/22E232/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/FB/810CBD/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6200,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:16.852435Z",
+    "month": "december",
+    "year": 2025,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/40/58F467/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/F5/3E6C88/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6196,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:18.658135Z",
+    "month": "january",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/10/0EC6AE/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/FB/6E37C6/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6171,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:20.452985Z",
+    "month": "february",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/BE/05436A/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/F0/38E270/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6170,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:22.199825Z",
+    "month": "march",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/CB/9CE5FC/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/87/C02A31/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6169,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:23.980023Z",
+    "month": "april",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/0D/5048F1/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/53/D82A89/gp-reg-pat-prac-map_V3.csv",
+    "practices_ingested": 6168,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:25.725545Z",
+    "month": "may",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/4F/64EF9E/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/F0/417B36/gp-reg-pat-prac-map_V2.zip",
+    "practices_ingested": 6155,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-27T18:51:27.709146Z",
+    "month": "june",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/15/4E45A6/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/8B/68C830/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6145,
+    "error": null
+  },
+  {
+    "run_at": "2026-06-28T00:32:12.713915Z",
+    "month": "april",
+    "year": 2026,
+    "status": "dry-run",
+    "totals_url": "https://files.digital.nhs.uk/0D/5048F1/gp-reg-pat-prac-all.csv",
+    "mapping_url": "https://files.digital.nhs.uk/53/D82A89/gp-reg-pat-prac-map_V3.csv",
+    "practices_ingested": null,
+    "error": null
+  }
+]

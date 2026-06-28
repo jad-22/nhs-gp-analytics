@@ -1,0 +1,29 @@
+name: NHS GP Historical Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Month name or number"
+        required: true
+      year:
+        description: "Year"
+        required: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run backfill scaffold
+        run: python -m pipeline.backfill --month "${{ github.event.inputs.month }}" --year "${{ github.event.inputs.year }}"

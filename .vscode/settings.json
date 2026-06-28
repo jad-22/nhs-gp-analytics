@@ -1,0 +1,14 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/nhs-gp-analytics && python -m compileall pipeline science scripts$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "mkdir": true,
+        ":": true,
+        "/^cd /workspaces/nhs-gp-analytics && python -m compileall pipeline science dashboard scripts tests$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

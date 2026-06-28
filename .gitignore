@@ -1,0 +1,19 @@
+# Raw downloaded files
+data/raw/
+
+# Processed and enrichment outputs are committed, but ignore local build artefacts.
+__pycache__/
+*.pyc
+.env
+.venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

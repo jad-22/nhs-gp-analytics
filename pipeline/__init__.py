@@ -1,0 +1,39 @@
+"""Core pipeline package for the NHS GP Analytics project scaffold."""
+
+from .config import (
+    DATA_DIR,
+    DATA_ENRICHMENT_DIR,
+    DATA_PROCESSED_DIR,
+    DATA_RAW_DIR,
+    DEFAULT_BACKFILL_START,
+    FILES_HOST,
+    LIST_SIZE_PARQUET_PATH,
+    MAPPING_STEM,
+    MAPPING_PARQUET_PATH,
+    MONTHS,
+    MONTH_TO_INT,
+    PDS_START,
+    PIPELINE_LOG_PATH,
+    PUBLICATION_PAGE_TEMPLATE,
+    REPO_ROOT,
+    TOTALS_STEM,
+)
+
+__all__ = [
+    "DATA_DIR",
+    "DATA_ENRICHMENT_DIR",
+    "DATA_PROCESSED_DIR",
+    "DATA_RAW_DIR",
+    "DEFAULT_BACKFILL_START",
+    "FILES_HOST",
+    "LIST_SIZE_PARQUET_PATH",
+    "MAPPING_STEM",
+    "MAPPING_PARQUET_PATH",
+    "MONTHS",
+    "MONTH_TO_INT",
+    "PDS_START",
+    "PIPELINE_LOG_PATH",
+    "PUBLICATION_PAGE_TEMPLATE",
+    "REPO_ROOT",
+    "TOTALS_STEM",
+]

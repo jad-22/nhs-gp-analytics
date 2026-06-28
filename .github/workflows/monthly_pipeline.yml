@@ -1,0 +1,41 @@
+name: Monthly NHS GP Data Pipeline
+
+on:
+  schedule:
+    - cron: "30 10 8-14 * 4"
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Month name or number"
+        required: false
+        default: ""
+      year:
+        description: "Year"
+        required: false
+        default: ""
+
+jobs:
+  monthly-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monthly pipeline scaffold
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.month }}" ]; then
+            ARGS="$ARGS --month ${{ github.event.inputs.month }}"
+          fi
+          if [ -n "${{ github.event.inputs.year }}" ]; then
+            ARGS="$ARGS --year ${{ github.event.inputs.year }}"
+          fi
+          python -m pipeline.monthly $ARGS
