@@ -1,50 +1,93 @@
-"""Streamlit entry point scaffold for NHS GP Analytics."""
+"""NHS GP Analytics — home page."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pandas as pd
 import streamlit as st
 
+from dashboard.components.filters import load_filter_options, render_sidebar
+from dashboard.components.theme import BORDER, CORAL, INK, MUTED, inject_global_css
 
-@st.cache_data(ttl=3600)
-def load_pipeline_log(log_path: Path) -> list[dict]:
-    """Load pipeline log records if present."""
+st.set_page_config(
+    page_title="NHS GP Analytics",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+inject_global_css()
+render_sidebar()
 
-    if not log_path.exists():
-        return []
-    try:
-        frame = pd.read_json(log_path)
-    except ValueError:
-        return []
-    return frame.to_dict(orient="records")
+_MONO = "'JetBrains Mono', 'Fira Code', monospace"
 
+# ── Hero ────────────────────────────────────────────────────────────────────
+st.markdown(
+    f"""<div style="padding-bottom:2rem;">
+        <h1 style="margin-bottom:0.375rem;">NHS GP Analytics</h1>
+        <p style="color:{MUTED}; max-width:68ch; line-height:1.65; margin:0;">
+            An automated analytics platform built on NHS England GP registration data.
+            Monthly pipeline · 6,000+ practices · 2015 to present.
+        </p>
+    </div>""",
+    unsafe_allow_html=True,
+)
 
-def main() -> None:
-    """Render the dashboard home scaffold."""
+# ── Module grid ──────────────────────────────────────────────────────────────
+_num = (
+    f"font-family:{_MONO}; color:{CORAL}; "
+    f"font-size:0.8125rem; font-weight:500; letter-spacing:0.02em;"
+)
+_desc = f"color:{MUTED}; font-size:0.9375rem; line-height:1.65; margin:0.5rem 0 1.25rem;"
+_rule = f"border-top:2px solid {BORDER}; padding-top:1.25rem;"
 
-    st.set_page_config(page_title="NHS GP Analytics", layout="wide")
-    st.title("NHS GP Analytics")
-    st.caption("Phase 1 scaffold: data foundation and module placeholders")
+col1, col2, col3 = st.columns(3, gap="large")
 
-    repo_root = Path(__file__).resolve().parent.parent
-    records = load_pipeline_log(repo_root / "data" / "pipeline_log.json")
-    last_run = records[-1]["run_at"] if records else "No runs recorded"
-
-    st.sidebar.header("Pipeline Status")
-    st.sidebar.write(f"Last run: {last_run}")
-
+with col1:
     st.markdown(
-        """
-        This app scaffold is in place for later phases.
-
-        - Page 1: List Size Trends
-        - Page 2: Clinical System Market Share
-        - Page 3: Deprivation Analysis
-        """
+        f"""<div style="{_rule}">
+            <h3><span style="{_num}">1 —</span> List Size Trends</h3>
+            <p style="{_desc}">Monthly patient registration counts from 2015 to present.
+            National trajectory, regional breakdown, and practice-level time series
+            with 12-month ARIMA forecasting.</p>
+        </div>""",
+        unsafe_allow_html=True,
     )
+    st.page_link("pages/1_List_Size_Trends.py", label="Explore trends →")
 
+with col2:
+    st.markdown(
+        f"""<div style="{_rule}">
+            <h3><span style="{_num}">2 —</span> Clinical System Market Share</h3>
+            <p style="{_desc}">EMIS Web vs SystmOne market share over time by patient count
+            and practice count. Regional concentration and migration signals across
+            England's commissioner regions.</p>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    st.page_link("pages/2_Clinical_System_Market_Share.py", label="Explore market share →")
 
-if __name__ == "__main__":
-    main()
+with col3:
+    st.markdown(
+        f"""<div style="{_rule}">
+            <h3><span style="{_num}">3 —</span> Deprivation Analysis</h3>
+            <p style="{_desc}">IMD decile distribution across England's GP practices, with
+            geographic clustering by ICB. Correlation between deprivation rank and
+            registered list size.</p>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    st.page_link("pages/3_Deprivation_Analysis.py", label="Explore deprivation →")
+
+# ── Data coverage footer ─────────────────────────────────────────────────────
+opts = load_filter_options()
+date_from_str = opts["date_min"].strftime("%b %Y")
+date_to_str = opts["date_max"].strftime("%b %Y")
+practices = opts["total_practices"]
+practices_str = f"{practices:,} practices · " if practices else ""
+
+st.markdown(
+    f"""<div style="margin-top:3rem; padding-top:1.5rem; border-top:1px solid {BORDER};">
+        <span style="font-family:{_MONO}; font-size:0.75rem; color:{MUTED};">
+            Data: {date_from_str} – {date_to_str} · {practices_str}NHS England GP Registration Statistics
+        </span>
+    </div>""",
+    unsafe_allow_html=True,
+)
