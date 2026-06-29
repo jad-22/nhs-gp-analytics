@@ -1,0 +1,6 @@
+[theme]
+primaryColor             = "#D1461D"   # Coral Anchor — active elements, selections, primary actions
+backgroundColor          = "#FFFFFF"   # Pure White — main content canvas
+secondaryBackgroundColor = "#F6F4F3"   # Surface — sidebar and secondary panels
+textColor                = "#1E1816"   # Ink — all body text and headings
+font                     = "sans serif"
