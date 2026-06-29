@@ -598,11 +598,13 @@ Status note (2026-06-28): `pipeline/scraper.py`, `pipeline/transformer.py`, `pip
 
 ### Phase 2 — Data Science (Week 2–3)
 
-- [ ] Build `forecasting.py` — Prophet on national + regional series
-- [ ] Build `anomaly.py` — Z-score + Isolation Forest flags
-- [ ] Build `clustering.py` — K-Means + UMAP
-- [ ] Build `deprivation.py` — IMD merge, under-served flags, Gini
-- [ ] Validate outputs in `notebooks/exploration.ipynb`
+- [x] Build `forecasting.py` — Prophet on national + regional series
+- [x] Build `anomaly.py` — Z-score + Isolation Forest flags
+- [x] Build `clustering.py` — K-Means + UMAP
+- [x] Build `deprivation.py` — IMD merge, under-served flags, Gini
+- [x] Validate outputs in `notebooks/exploration.ipynb`
+
+Status note (2026-06-29): Phase 2 helper modules are implemented and covered by focused tests in `tests/test_science.py`. Full test suite passes (`15 passed`), and clustering has been smoke-tested against the latest processed snapshot after adding compatibility for older scikit-learn releases. Remaining work before Phase 3 is to decide whether to precompute/cache heavy science outputs to Parquet for dashboard performance.
 
 ### Phase 3 — Dashboard (Week 3–4)
 

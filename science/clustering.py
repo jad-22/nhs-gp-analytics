@@ -57,7 +57,10 @@ def _feature_matrix(frame: pd.DataFrame) -> tuple[np.ndarray, pd.DataFrame]:
 
     categorical_columns = [column for column in ("COMM_REGION_NAME", "CLINICAL_SYSTEM") if column in frame.columns]
     if categorical_columns:
-        encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+        try:
+            encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+        except TypeError:  # scikit-learn < 1.2 used the sparse keyword.
+            encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)
         categorical = encoder.fit_transform(frame[categorical_columns].fillna("Unknown"))
         feature_matrix = np.hstack([numeric_scaled, categorical])
     else:
