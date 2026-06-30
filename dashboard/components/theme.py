@@ -5,6 +5,7 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ── Brand tokens ──────────────────────────────────────────────────────────────
 # Source of truth for all colour and typography values used across the dashboard.
@@ -151,7 +152,14 @@ code, pre,
 section[data-testid="stSidebar"] {{
     background-color: {SURFACE} !important;
     border-right: 1px solid {BORDER};
-    min-width: 260px !important;
+}}
+/* Streamlit collapses via transform (not width:0), so the sidebar always
+   occupies its 256px in the flex layout even when visually hidden.
+   Override to zero width on collapse so stMain can reflow to full viewport. */
+section[data-testid="stSidebar"][aria-expanded="false"] {{
+    width: 0px !important;
+    min-width: 0px !important;
+    border-right: none !important;
 }}
 section[data-testid="stSidebar"] > div:first-child {{
     background-color: {SURFACE} !important;
@@ -224,23 +232,75 @@ button, input, select, textarea,
 
 /* ── Hide Streamlit chrome ───────────────────────────────────── */
 #MainMenu                           {{ visibility: hidden; }}
-[data-testid="stToolbar"]           {{ display: none !important; }}
 footer                              {{ visibility: hidden; height: 0 !important; overflow: hidden; }}
 .stDeployButton                     {{ display: none !important; }}
 
+/* Keep stToolbar in layout flow (display:none collapses stHeader to 0 height,
+   which clips stExpandSidebarButton and makes it invisible). Hide only the
+   specific chrome we don't want instead. */
+[data-testid="stToolbar"]           {{ background: transparent !important; border: 0 !important; box-shadow: none !important; }}
+[data-testid="stToolbarActions"]    {{ display: none !important; }}
+[data-testid="stAppDeployButton"]   {{ display: none !important; }}
+
 /* Streamlit moves the sidebar expand button into the header when collapsed.
-   Keep that layer invisible-but-clickable instead of removing it entirely. */
+   Keep the header layer available; hide only the nonessential chrome. */
 [data-testid="stHeader"] {{
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
-    pointer-events: none;
 }}
-[data-testid="stHeader"] button,
-[data-testid="stHeader"] [role="button"],
+
+/* Collapse button (inside expanded sidebar) — CSS only, no layout issues here */
+[data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"],
 [data-testid="stSidebarCollapsedControl"] {{
+    align-items: center !important;
+    background: {BG} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(30, 24, 22, 0.08) !important;
+    display: inline-flex !important;
+    height: 2.25rem !important;
+    justify-content: center !important;
+    margin: 0.5rem 0 0 0.5rem !important;
+    opacity: 1 !important;
     pointer-events: auto !important;
+    position: relative !important;
+    visibility: visible !important;
+    width: 2.25rem !important;
+    z-index: 1000000 !important;
+}}
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] button {{
+    color: {INK} !important;
+    display: inline-flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+}}
+
+/* Expand button: CSS-best-effort (JS in _SIDEBAR_COLLAPSE_JS is authoritative —
+   Emotion CSS beats stylesheet !important by source order, JS inline !important wins) */
+[data-testid="stExpandSidebarButton"] {{
+    align-items: center !important;
+    background: {BG} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(30, 24, 22, 0.08) !important;
+    color: {INK} !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    height: 2.25rem !important;
+    justify-content: center !important;
+    left: 0.5rem !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 0.5rem !important;
+    visibility: visible !important;
+    width: 2.25rem !important;
+    z-index: 1000000 !important;
 }}
 
 /* ── Reduced motion ──────────────────────────────────────────── */
@@ -253,6 +313,57 @@ footer                              {{ visibility: hidden; height: 0 !important;
 </style>"""
 
 
+_SIDEBAR_COLLAPSE_JS = """
+<script>
+(function() {
+  function updateLayout() {
+    try {
+      var doc = window.parent.document;
+      var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+      if (!sidebar) return;
+      var collapsed = sidebar.getAttribute('aria-expanded') === 'false';
+      if (collapsed) {
+        sidebar.style.setProperty('width', '0px', 'important');
+        sidebar.style.setProperty('min-width', '0px', 'important');
+        sidebar.style.setProperty('overflow', 'hidden', 'important');
+        sidebar.style.setProperty('border-right', 'none', 'important');
+      } else {
+        sidebar.style.removeProperty('width');
+        sidebar.style.removeProperty('min-width');
+        sidebar.style.removeProperty('overflow');
+        sidebar.style.removeProperty('border-right');
+      }
+      var btn = doc.querySelector('[data-testid="stExpandSidebarButton"]');
+      if (btn) {
+        btn.style.setProperty('position', 'fixed', 'important');
+        btn.style.setProperty('top', '0.5rem', 'important');
+        btn.style.setProperty('left', '0.5rem', 'important');
+        btn.style.setProperty('width', '2.25rem', 'important');
+        btn.style.setProperty('height', '2.25rem', 'important');
+        btn.style.setProperty('display', 'inline-flex', 'important');
+        btn.style.setProperty('align-items', 'center', 'important');
+        btn.style.setProperty('justify-content', 'center', 'important');
+        btn.style.setProperty('background', '#FFFFFF', 'important');
+        btn.style.setProperty('border', '1px solid #E0DEDD', 'important');
+        btn.style.setProperty('border-radius', '6px', 'important');
+        btn.style.setProperty('box-shadow', '0 1px 2px rgba(30,24,22,0.08)', 'important');
+        btn.style.setProperty('opacity', '1', 'important');
+        btn.style.setProperty('visibility', 'visible', 'important');
+        btn.style.setProperty('pointer-events', 'auto', 'important');
+        btn.style.setProperty('cursor', 'pointer', 'important');
+        btn.style.setProperty('z-index', '1000000', 'important');
+        btn.style.setProperty('color', '#1E1816', 'important');
+      }
+    } catch(e) {}
+  }
+  if (window.parent._nhsSidebarFix) clearInterval(window.parent._nhsSidebarFix);
+  window.parent._nhsSidebarFix = setInterval(updateLayout, 50);
+  updateLayout();
+})();
+</script>
+"""
+
+
 def inject_global_css() -> None:
     """Inject brand fonts, CSS tokens, and Streamlit overrides.
 
@@ -260,6 +371,7 @@ def inject_global_css() -> None:
     multiple times per page run; duplicate <style> blocks are harmless.
     """
     st.markdown(_CSS, unsafe_allow_html=True)
+    components.html(_SIDEBAR_COLLAPSE_JS, height=1, scrolling=False)
 
 
 def apply_brand_theme(
