@@ -16,6 +16,7 @@ from dashboard.components.theme import BORDER, CORAL, INK, MUTED
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _LIST_SIZE_PATH = _REPO_ROOT / "data" / "processed" / "list_size.parquet"
 _MAPPING_PATH = _REPO_ROOT / "data" / "processed" / "mapping.parquet"
+_LATEST_CACHE_PATH = _REPO_ROOT / "data" / "processed" / "dashboard" / "latest_snapshot.parquet"
 _LOG_PATH = _REPO_ROOT / "data" / "pipeline_log.json"
 
 _AMBER = "#B07B1B"
@@ -41,7 +42,7 @@ class FilterState:
 @st.cache_data(ttl=3600)
 def load_filter_options() -> dict[str, Any]:
     """Load date range, region list, ICB-by-region map, and practice count from parquet."""
-    date_min: date = date(2015, 1, 1)
+    date_min: date = date(2020, 1, 1)
     date_max: date = date.today()
     regions: list[str] = []
     icb_by_region: dict[str, list[str]] = {}
@@ -57,16 +58,19 @@ def load_filter_options() -> dict[str, Any]:
         except Exception:
             pass
 
-    if _MAPPING_PATH.exists():
+    mapping_source = _LATEST_CACHE_PATH if _LATEST_CACHE_PATH.exists() else _MAPPING_PATH
+    if mapping_source.exists():
         try:
-            df_map = pd.read_parquet(_MAPPING_PATH)
-            if "PRACTICE_CODE" in df_map.columns:
-                total_practices = int(df_map["PRACTICE_CODE"].nunique())
-            if "COMM_REGION_NAME" in df_map.columns:
-                regions = sorted(df_map["COMM_REGION_NAME"].dropna().unique().tolist())
-            if "COMM_REGION_NAME" in df_map.columns and "ICB_NAME" in df_map.columns:
+            df_map = pd.read_parquet(mapping_source)
+            code_column = "CODE" if "CODE" in df_map.columns else "PRACTICE_CODE"
+            region_column = "REGION_NAME" if "REGION_NAME" in df_map.columns else "COMM_REGION_NAME"
+            if code_column in df_map.columns:
+                total_practices = int(df_map[code_column].nunique())
+            if region_column in df_map.columns:
+                regions = sorted(df_map[region_column].dropna().unique().tolist())
+            if region_column in df_map.columns and "ICB_NAME" in df_map.columns:
                 for region in regions:
-                    mask = df_map["COMM_REGION_NAME"] == region
+                    mask = df_map[region_column] == region
                     icbs = sorted(df_map.loc[mask, "ICB_NAME"].dropna().unique().tolist())
                     if icbs:
                         icb_by_region[region] = icbs

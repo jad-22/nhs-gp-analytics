@@ -471,13 +471,33 @@ def regional_inequality(df: pd.DataFrame) -> pd.DataFrame
 
 **Sections:**
 
-1. **Choropleth map** — England ICB or LSOA level, coloured by average `IMD_DECILE`; overlay practice markers
+1. **Practice marker map** — England practice locations coloured by `IMD_DECILE`; boundary choropleths deferred to a later GeoJSON phase
 2. **Scatter plot** — `NUMBER_OF_PATIENTS` (y) vs `IMD_SCORE` (x), colour by region, size by list size
 3. **Under-served practices** — filterable table: deprived area + small practice flag
 4. **Cluster explorer** — UMAP 2D plot with cluster labels; cluster profile cards (avg size, avg IMD, dominant system, region)
 5. **Inequality trends** — Gini coefficient of list sizes within each IMD decile, over time (line chart)
 
-**Maps:** Plotly `go.Choroplethmapbox` with GeoJSON for ICB boundaries (source: ONS Open Geography Portal)
+**Maps:** Phase 3 uses lightweight Plotly practice marker maps from cached latitude/longitude enrichment. Boundary GeoJSON choropleths are deferred to a later phase so Phase 3 can ship without adding a large boundary asset or network-dependent GeoJSON fetch path. Later choropleth work should source ICB boundaries from the ONS Open Geography Portal and commit a trimmed, dashboard-ready boundary asset.
+
+### Phase 3 Implementation Status
+
+Phase 3 is complete as of 2026-06-30. The delivered dashboard includes:
+
+- Streamlit multi-page entry point in `dashboard/app.py`
+- Shared dashboard components in `dashboard/components/`
+- Cached data loading and lightweight transformations in `dashboard/data.py`
+- List Size Trends page with national/regional trend views, practice drill-down forecasting, and anomaly table support
+- Clinical System Market Share page with practice/patient share views, regional comparisons, distribution views, and migration signals
+- Deprivation Analysis page with practice marker maps, IMD scatter analysis, under-served practice table, cluster explorer, correlations, and inequality trends
+- Dashboard cache builder in `scripts/build_dashboard_cache.py`
+- Dashboard-ready Parquet outputs in `data/processed/dashboard/`
+
+Run locally with:
+
+```bash
+python scripts/build_dashboard_cache.py
+python -m streamlit run dashboard/app.py
+```
 
 ---
 
@@ -608,11 +628,15 @@ Status note (2026-06-29): Phase 2 helper modules are implemented and covered by 
 
 ### Phase 3 — Dashboard (Week 3–4)
 
-- [ ] Build `dashboard/app.py` skeleton + shared sidebar filters
-- [ ] Page 1: List Size Trends (time series + forecast + anomaly table)
-- [ ] Page 2: Clinical System Market Share (stacked area + heatmap + violin)
-- [ ] Page 3: Deprivation Analysis (choropleth + scatter + cluster explorer)
+- [x] Build `dashboard/app.py` skeleton + shared sidebar filters
+- [x] Page 1: List Size Trends (time series + forecast + anomaly table)
+- [x] Page 2: Clinical System Market Share (stacked area + heatmap + violin)
+- [x] Page 3: Deprivation Analysis (practice marker map + scatter + cluster explorer)
 - [ ] Deploy to Streamlit Cloud; test on public URL
+
+Scope note (2026-06-30): GeoJSON boundary choropleths are intentionally deferred to a later phase. Phase 3 should use cached practice latitude/longitude markers for spatial context and avoid adding ICB/LSOA boundary assets until a dedicated boundary-data task is planned.
+
+Status note (2026-06-30): Phase 3 local implementation is complete. The Streamlit app, dashboard pages, shared components, cached data loader, and dashboard cache builder are implemented. Dashboard cache files are committed under `data/processed/dashboard/` and the app runs locally with `python -m streamlit run dashboard/app.py`. Public Streamlit Cloud deployment remains a hosting task.
 
 ### Phase 4 — Pipeline Automation (Week 4)
 
