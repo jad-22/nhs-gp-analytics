@@ -105,12 +105,39 @@ _CSS = f"""<style>
 }}
 
 /* ── Global font ─────────────────────────────────────────────── */
-html, body, [class*="css"], p, div, span,
+html, body, [class*="css"], p, div,
 h1, h2, h3, h4, h5, h6,
 label, button, input, select, textarea, th, td, a {{
     font-family: var(--f-sans) !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}}
+
+/* Preserve Streamlit's Material Symbols ligatures for sidebar controls. */
+.material-symbols-rounded,
+.material-symbols-outlined,
+.material-symbols-sharp,
+.material-icons,
+.material-icons-outlined,
+[class*="material-symbols"],
+[class*="material-icons"] {{
+    font-family:
+        "Material Symbols Rounded",
+        "Material Symbols Outlined",
+        "Material Icons" !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    direction: ltr !important;
+    -webkit-font-feature-settings: "liga" !important;
+    font-feature-settings: "liga" !important;
+    -webkit-font-smoothing: antialiased;
 }}
 
 /* Mono reserved for data values and metric figures */
