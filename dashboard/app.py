@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import streamlit as st
+
+REPO_ROOT = next(parent for parent in Path(__file__).resolve().parents if (parent / "dashboard").is_dir())
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from dashboard.components.filters import load_filter_options, render_sidebar
 from dashboard.components.theme import BORDER, CORAL, MUTED, inject_global_css

@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
+
+REPO_ROOT = next(parent for parent in Path(__file__).resolve().parents if (parent / "dashboard").is_dir())
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from dashboard.components.charts import patient_total_line, practice_forecast_chart, regional_patient_lines
 from dashboard.components.filters import render_sidebar
