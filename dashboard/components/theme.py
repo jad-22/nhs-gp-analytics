@@ -224,10 +224,24 @@ button, input, select, textarea,
 
 /* ── Hide Streamlit chrome ───────────────────────────────────── */
 #MainMenu                           {{ visibility: hidden; }}
-[data-testid="stHeader"]            {{ display: none !important; }}
 [data-testid="stToolbar"]           {{ display: none !important; }}
 footer                              {{ visibility: hidden; height: 0 !important; overflow: hidden; }}
 .stDeployButton                     {{ display: none !important; }}
+
+/* Streamlit moves the sidebar expand button into the header when collapsed.
+   Keep that layer invisible-but-clickable instead of removing it entirely. */
+[data-testid="stHeader"] {{
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}}
+[data-testid="stHeader"] button,
+[data-testid="stHeader"] [role="button"],
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapsedControl"] {{
+    pointer-events: auto !important;
+}}
 
 /* ── Reduced motion ──────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {{
