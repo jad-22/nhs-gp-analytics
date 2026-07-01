@@ -123,6 +123,10 @@ python -c "import pandas as pd; from pipeline.loader import get_latest_snapshot;
 
 Phase 3 ships the Streamlit dashboard and dashboard-ready cached Parquet files.
 
+Public deployment:
+
+- https://nhs-gp-analytics.streamlit.app
+
 The app entry point is:
 
 ```text
@@ -210,7 +214,15 @@ python scripts/build_dashboard_cache.py
 
 - Phase 1 is complete: processed list-size and mapping Parquet outputs exist with enrichment joined.
 - Phase 2 is complete: forecasting, anomaly detection, clustering, and deprivation helpers are implemented and tested.
-- Phase 3 is complete: the Streamlit dashboard, shared components, page filters, and cached dashboard datasets are implemented.
+- Phase 3 is complete: the Streamlit dashboard, shared components, page filters, and cached dashboard datasets are implemented and deployed on Streamlit Cloud.
+- Phase 4 is in progress: monthly pipeline automation and commit-back workflow implementation is complete; live workflow/redeploy validation is next.
+
+## Phase 4: Pipeline Automation Checklist
+
+- [x] Build monthly entry point (`pipeline/monthly.py`)
+- [x] Implement monthly GitHub Actions workflow (`.github/workflows/monthly_pipeline.yml`)
+- [ ] Test manual `workflow_dispatch` trigger in GitHub Actions
+- [ ] Verify commit-back to `main` and Streamlit redeploy after a successful run
 
 ## Notes
 

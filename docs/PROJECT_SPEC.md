@@ -481,7 +481,7 @@ def regional_inequality(df: pd.DataFrame) -> pd.DataFrame
 
 ### Phase 3 Implementation Status
 
-Phase 3 is complete as of 2026-06-30. The delivered dashboard includes:
+Phase 3 is complete as of 2026-07-01. The delivered dashboard includes:
 
 - Streamlit multi-page entry point in `dashboard/app.py`
 - Shared dashboard components in `dashboard/components/`
@@ -491,6 +491,7 @@ Phase 3 is complete as of 2026-06-30. The delivered dashboard includes:
 - Deprivation Analysis page with practice marker maps, IMD scatter analysis, under-served practice table, cluster explorer, correlations, and inequality trends
 - Dashboard cache builder in `scripts/build_dashboard_cache.py`
 - Dashboard-ready Parquet outputs in `data/processed/dashboard/`
+- Public Streamlit Cloud deployment verified at `https://nhs-gp-analytics.streamlit.app`
 
 Run locally with:
 
@@ -632,18 +633,20 @@ Status note (2026-06-29): Phase 2 helper modules are implemented and covered by 
 - [x] Page 1: List Size Trends (time series + forecast + anomaly table)
 - [x] Page 2: Clinical System Market Share (stacked area + heatmap + violin)
 - [x] Page 3: Deprivation Analysis (practice marker map + scatter + cluster explorer)
-- [ ] Deploy to Streamlit Cloud; test on public URL
+- [x] Deploy to Streamlit Cloud; test on public URL
 
 Scope note (2026-06-30): GeoJSON boundary choropleths are intentionally deferred to a later phase. Phase 3 should use cached practice latitude/longitude markers for spatial context and avoid adding ICB/LSOA boundary assets until a dedicated boundary-data task is planned.
 
-Status note (2026-06-30): Phase 3 local implementation is complete. The Streamlit app, dashboard pages, shared components, cached data loader, and dashboard cache builder are implemented. Dashboard cache files are committed under `data/processed/dashboard/` and the app runs locally with `python -m streamlit run dashboard/app.py`. Public Streamlit Cloud deployment remains a hosting task.
+Status note (2026-07-01): Phase 3 is complete in production. The Streamlit app, dashboard pages, shared components, cached data loader, and dashboard cache builder are implemented, and the public deployment has been validated at `https://nhs-gp-analytics.streamlit.app`.
 
 ### Phase 4 — Pipeline Automation (Week 4)
 
-- [ ] Build `pipeline/monthly.py` entry point
-- [ ] Write `monthly_pipeline.yml` GitHub Actions workflow
+- [x] Build `pipeline/monthly.py` entry point
+- [x] Write `monthly_pipeline.yml` GitHub Actions workflow
 - [ ] Test manual `workflow_dispatch` trigger
 - [ ] Verify commit-back and Streamlit redeploy on push
+
+Status note (2026-07-01): Phase 4 implementation is in progress. The monthly entry point and automation workflow are now in place; remaining checklist items require a live GitHub Actions run and redeploy verification.
 
 ### Phase 5 — Polish (Week 4–5)
 
