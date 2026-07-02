@@ -650,8 +650,10 @@ Status note (2026-07-01): Phase 4 implementation is in progress. The monthly ent
 
 ### Phase 5 — Polish (Week 4–5)
 
-- [ ] Write `README.md` (project story, architecture diagram, live demo link)
-- [ ] Add "About the data" page in dashboard with caveats
+- [x] Write `README.md` (project story, architecture diagram, live demo link)
+- [x] Add "About the data" page in dashboard with caveats
 - [ ] Add `tests/` with at minimum scraper + transformer coverage
 - [ ] Performance: cache heavy DS computations to disk (pre-computed Parquet outputs)
 - [ ] Add `pipeline_log` display to dashboard sidebar
+
+Status note (2026-07-01): README now includes a project narrative, architecture diagram, and live deployment link. Dashboard page `dashboard/pages/4_About_the_Data.py` has been added to document source provenance and known caveats.

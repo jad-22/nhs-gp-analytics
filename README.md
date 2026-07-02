@@ -2,6 +2,53 @@
 
 Portfolio project for building an automated analytics platform on open NHS England GP practice registration data.
 
+## Live Demo
+
+- https://nhs-gp-analytics.streamlit.app
+
+## Project Story
+
+NHS GP Analytics was built to demonstrate end-to-end delivery across data engineering,
+data science, and product design in one public system.
+
+The platform ingests monthly NHS England GP registration publications, normalizes and
+stores longitudinal snapshots as Parquet, precomputes dashboard-friendly analytics, and
+serves a public Streamlit experience for exploration.
+
+The project is intentionally portfolio-first:
+
+- Clear, reproducible pipeline and transformation logic
+- Practical science modules (forecasting, anomaly detection, clustering, deprivation analysis)
+- Production deployment on Streamlit Cloud with public access
+- Documentation of caveats such as source discontinuities and geography changes
+
+## Architecture
+
+```mermaid
+flowchart TD
+	A[NHS Digital Monthly Publication Pages] --> B[pipeline.scraper]
+	B --> C[pipeline.extractor]
+	C --> D[pipeline.transformer]
+	D --> E[pipeline.loader]
+	E --> F[data/processed/list_size.parquet]
+	E --> G[data/processed/mapping.parquet]
+
+	H[IMD + ONSPD Enrichment Sources] --> I[scripts/prepare_* and extract_onspd_england]
+	I --> J[data/enrichment/*.parquet]
+	J --> K[scripts/join_enrichment]
+	K --> G
+
+	F --> L[scripts/build_dashboard_cache]
+	G --> L
+	L --> M[data/processed/dashboard/*.parquet]
+
+	M --> N[Streamlit App: dashboard/app.py + pages]
+	O[GitHub Actions monthly_pipeline.yml] --> B
+	O --> L
+	O --> P[Commit updated Parquet to main]
+	P --> N
+```
+
 ## Project Context
 
 This repository follows the product and engineering scope described in:
@@ -123,10 +170,6 @@ python -c "import pandas as pd; from pipeline.loader import get_latest_snapshot;
 
 Phase 3 ships the Streamlit dashboard and dashboard-ready cached Parquet files.
 
-Public deployment:
-
-- https://nhs-gp-analytics.streamlit.app
-
 The app entry point is:
 
 ```text
@@ -216,6 +259,7 @@ python scripts/build_dashboard_cache.py
 - Phase 2 is complete: forecasting, anomaly detection, clustering, and deprivation helpers are implemented and tested.
 - Phase 3 is complete: the Streamlit dashboard, shared components, page filters, and cached dashboard datasets are implemented and deployed on Streamlit Cloud.
 - Phase 4 is in progress: monthly pipeline automation and commit-back workflow implementation is complete; live workflow/redeploy validation is next.
+- Phase 5 is in progress: README story/architecture updates and an About the data dashboard page are now in place.
 
 ## Phase 4: Pipeline Automation Checklist
 

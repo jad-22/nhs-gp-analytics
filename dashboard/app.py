@@ -77,6 +77,17 @@ with col3:
     )
     st.page_link("pages/3_Deprivation_Analysis.py", label="Explore deprivation")
 
+st.markdown("---")
+st.markdown("<h2>About</h2>", unsafe_allow_html=True)
+st.markdown(
+    f"""<p style="color:{MUTED}; max-width:72ch; line-height:1.65; margin-bottom:0.75rem;">
+        Source provenance, quality caveats, and interpretation guidance for all
+        dashboard analyses.
+    </p>""",
+    unsafe_allow_html=True,
+)
+st.page_link("pages/4_About_the_Data.py", label="Read about the data")
+
 opts = load_filter_options()
 date_from_str = opts["date_min"].strftime("%b %Y")
 date_to_str = opts["date_max"].strftime("%b %Y")
