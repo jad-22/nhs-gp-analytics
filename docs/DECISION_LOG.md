@@ -149,3 +149,46 @@ Impact
 Implementation Notes
 - Harness and baselines: `science/backtesting.py`; tests: `tests/test_backtesting.py`.
 - Methodology and model-selection protocol: `docs/FORECAST_VALIDATION.md`.
+
+---
+
+### DEC-005: Validate Practice Clustering via Stability and Internal Metrics
+
+- Date: 2026-07-09
+- Status: Accepted
+- Scope: Data Science
+
+Context
+- `science/clustering.py` segments practices with K-Means but had no validation beyond
+  a narrow silhouette tie-break (`requested ± 1` cluster counts), and the quality score
+  was never surfaced.
+- k-fold cross-validation cannot be applied: clustering has no ground-truth labels to
+  score against on held-out folds.
+
+Decision
+- Add clustering diagnostics in `science/cluster_validation.py`: feature correlation
+  (redundancy), a full k sweep with silhouette/Davies-Bouldin/inertia (internal
+  validity), bootstrap stability via Adjusted Rand Index (the cross-validation
+  analogue), and cluster-vs-category association via Cramér's V (confounding).
+- Adopt reading thresholds: silhouette < 0.25 = weak structure; mean bootstrap
+  ARI < 0.6 = clusters must not be narrated as meaningful segments; Cramér's V > 0.8 =
+  the clustering is re-labelling that category.
+
+Rationale
+- Bootstrap stability answers the question k-fold answers for supervised models —
+  "did we fit noise?" — while respecting that there are no labels.
+- Running diagnostics on the production feature pipeline measures what
+  `cluster_practices` actually does, rather than an idealised variant.
+
+Impact
+- First run (June 2026 snapshot) found: weak-but-stable structure (silhouette ~0.2,
+  ARI ~0.99), a dead `AGE_MONTHS` feature (constant 0 on snapshot input), and a
+  substantial clinical-system confound (Cramér's V 0.66) caused by one-hot features.
+- Findings and recommended fixes are recorded in `docs/CLUSTER_VALIDATION.md`; fixes
+  to `science/clustering.py` are deliberately deferred to a follow-up so they can cite
+  this evidence.
+
+Implementation Notes
+- Diagnostics: `science/cluster_validation.py`; tests: `tests/test_cluster_validation.py`.
+- Findings and interpretation: `docs/CLUSTER_VALIDATION.md`; notebook section in
+  `notebooks/exploration.ipynb`.
