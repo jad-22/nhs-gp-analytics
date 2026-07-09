@@ -5,6 +5,7 @@ import pytest
 from science.backtesting import (
     compare_models,
     generate_cutoffs,
+    linear_forecast,
     naive_forecast,
     rolling_origin_backtest,
     score_backtest,
@@ -130,10 +131,17 @@ def test_score_by_horizon_groups_by_months_ahead() -> None:
 
 def test_compare_models_ranks_linear_first_on_trending_series() -> None:
     frame = _trend_with_seasonality(60)
+    # Pin the candidate set: the default registry adds Prophet when installed,
+    # which would make the ranking environment-dependent.
+    baselines = {
+        "naive": naive_forecast,
+        "seasonal_naive": seasonal_naive_forecast,
+        "linear": linear_forecast,
+    }
 
-    summary = compare_models(frame, horizon=12, initial=36, step=6)
+    summary = compare_models(frame, forecasters=baselines, horizon=12, initial=36, step=6)
 
-    assert {"naive", "seasonal_naive", "linear"}.issubset(summary.index)
+    assert {"naive", "seasonal_naive", "linear"} == set(summary.index)
     assert list(summary.columns) == ["n_forecasts", "mae", "rmse", "mape", "mase", "coverage"]
     # On a clean linear trend with mild seasonality the trend model must win.
     assert summary.index[0] == "linear"
