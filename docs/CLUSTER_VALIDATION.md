@@ -54,19 +54,34 @@ the clinical-system alignment means "cluster differs by system" is circular — 
 system was an input. The purity of the cross-tab shows the one-hot columns are not
 merely *influencing* the partition, they are its top-level split.
 
-## 4. Recommended follow-ups (evidence-based, not yet applied)
+## 4. Fixes applied (DEC-006)
 
-1. **Drop `AGE_MONTHS`** from the feature set, or compute it from the full time series
-   (first month each practice appears in `list_size`) rather than the input frame.
-2. **Reconsider the one-hot categoricals.** Raw 0/1 region/system columns sit
-   unscaled next to standardised numerics and drive the clinical-system confound.
-   Standard options: cluster on numerics only and use categoricals to *profile*
-   clusters afterwards, or switch to K-Prototypes/Gower distance for mixed types.
-3. **Surface the silhouette score** from `cluster_practices` so the dashboard can
-   qualify the segmentation, and widen `_choose_cluster_count`'s search range.
-4. Present clusters on the dashboard as segments, with the caveat above.
+1. **Constant features dropped automatically** — `AGE_MONTHS` no longer pollutes the
+   matrix on single-snapshot input (computing it from the full time series remains a
+   possible enhancement).
+2. **Categoricals removed from the distance.** The feature matrix is numerics-only;
+   region and clinical system are reported as cluster profiles (dominant values).
+3. **Silhouette surfaced** as a SILHOUETTE_SCORE output column, and the k search
+   widened to 2..requested+2 (with `auto_k=False` to pin an exact count).
 
-## 5. Related
+## 5. Post-fix results (June 2026 snapshot)
+
+| Check | Before (§3) | After DEC-006 |
+|---|---|---|
+| Silhouette at best k | 0.225 (k = 2) | **0.398** (k = 2); 0.32–0.35 across k = 3–12 |
+| Davies-Bouldin range | 1.42–1.70 | 0.79–1.01 |
+| Cramér's V vs clinical system | 0.66 (4 of 5 clusters 100% pure) | **0.02** — confound eliminated |
+| Cramér's V vs region | 0.33 | 0.27 (legitimate geography/deprivation association, no longer circular) |
+| Bootstrap ARI | 0.985 | 0.989 |
+| Production cluster count (`auto_k`) | 5 | **2** — the data's preferred split |
+
+The structure is still moderate rather than strong (silhouette < 0.5), so the
+"segments, not archetypes" presentation guidance stands. Note the `auto_k` default
+now yields two segments in the dashboard cluster explorer after a cache rebuild —
+pass `auto_k=False` in `scripts/build_dashboard_cache.py` if six fixed segments are
+preferred for slicing.
+
+## 6. Related
 
 - Implementation: `science/cluster_validation.py`; tests: `tests/test_cluster_validation.py`
 - Module under test: `science/clustering.py` (`cluster_practices`)

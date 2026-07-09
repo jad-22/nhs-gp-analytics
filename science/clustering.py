@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 try:  # pragma: no cover - notebook validation exercises the happy path.
     import umap
@@ -51,34 +51,40 @@ def _build_feature_frame(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
 
 
 def _feature_matrix(frame: pd.DataFrame) -> tuple[np.ndarray, pd.DataFrame]:
+    """Standardised numeric feature matrix for K-Means.
+
+    Categorical columns (region, clinical system) are deliberately excluded from the
+    distance and used only to profile clusters afterwards: DEC-005 validation showed
+    that one-hot columns dominated the partition, making four of five clusters 100%
+    pure by clinical system (DEC-006). Constant columns (e.g. AGE_MONTHS on a
+    single-snapshot input) are dropped for the same reason — they carry no signal.
+    """
+
     numeric = frame[["LOG_PATIENTS", "IMD_DECILE", "AGE_MONTHS"]].copy()
     numeric = pd.DataFrame(SimpleImputer(strategy="median").fit_transform(numeric), columns=numeric.columns)
-    numeric_scaled = StandardScaler().fit_transform(numeric)
-
-    categorical_columns = [column for column in ("COMM_REGION_NAME", "CLINICAL_SYSTEM") if column in frame.columns]
-    if categorical_columns:
-        try:
-            encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
-        except TypeError:  # scikit-learn < 1.2 used the sparse keyword.
-            encoder = OneHotEncoder(handle_unknown="ignore", sparse=False)
-        categorical = encoder.fit_transform(frame[categorical_columns].fillna("Unknown"))
-        feature_matrix = np.hstack([numeric_scaled, categorical])
-    else:
-        feature_matrix = numeric_scaled
-    return feature_matrix, numeric
+    varying = numeric.loc[:, numeric.nunique() > 1]
+    if varying.empty:
+        return np.zeros((len(numeric), 0)), varying
+    return StandardScaler().fit_transform(varying), varying
 
 
-def _choose_cluster_count(matrix: np.ndarray, requested: int) -> int:
+def _choose_cluster_count(matrix: np.ndarray, requested: int) -> tuple[int, float]:
+    """Pick a cluster count by silhouette over 2..requested+2 (DEC-006 widened search).
+
+    Returns (cluster_count, silhouette). The previous requested ± 1 search could never
+    move far from the caller's guess; the widened range lets the data vote while the
+    requested value still caps the effective maximum.
+    """
+
     sample_count = matrix.shape[0]
-    if sample_count < 3:
-        return 1
+    if sample_count < 3 or matrix.shape[1] == 0:
+        return 1, float("nan")
 
-    lower = max(2, requested - 1)
-    upper = min(sample_count - 1, requested + 1)
-    candidates = list(range(lower, upper + 1)) or [min(max(2, requested), sample_count - 1)]
+    upper = min(sample_count - 1, requested + 2)
+    candidates = list(range(2, upper + 1)) or [min(2, sample_count - 1)]
 
     best_k = candidates[0]
-    best_score = float("-inf")
+    best_score = float("nan")
     for candidate in candidates:
         if candidate >= sample_count:
             continue
@@ -87,10 +93,10 @@ def _choose_cluster_count(matrix: np.ndarray, requested: int) -> int:
         if len(set(labels)) < 2:
             continue
         score = silhouette_score(matrix, labels)
-        if score > best_score:
+        if np.isnan(best_score) or score > best_score:
             best_score = score
             best_k = candidate
-    return best_k
+    return best_k, float(best_score)
 
 
 def umap_embed(df: pd.DataFrame) -> pd.DataFrame:
@@ -101,7 +107,7 @@ def umap_embed(df: pd.DataFrame) -> pd.DataFrame:
         return frame.assign(UMAP_X=pd.Series(dtype=float), UMAP_Y=pd.Series(dtype=float))
 
     matrix, _ = _feature_matrix(frame)
-    if len(frame) < 3:
+    if len(frame) < 3 or matrix.shape[1] == 0:
         frame["UMAP_X"] = 0.0
         frame["UMAP_Y"] = 0.0
         return frame
@@ -126,20 +132,43 @@ def umap_embed(df: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def cluster_practices(df: pd.DataFrame, n_clusters: int = 6) -> pd.DataFrame:
-    """Cluster practices using K-Means and attach cluster-level profile summaries."""
+def cluster_practices(df: pd.DataFrame, n_clusters: int = 6, auto_k: bool = True) -> pd.DataFrame:
+    """Cluster practices using K-Means and attach cluster-level profile summaries.
+
+    Distances use standardised numeric features only; region and clinical system are
+    reported as cluster profiles (dominant values), not used as features (DEC-006).
+    The output includes SILHOUETTE_SCORE so consumers can qualify the segmentation
+    (> 0.5 strong structure, < 0.25 weak — present the clusters as segments, not
+    discovered archetypes).
+
+    With ``auto_k`` (default) the cluster count is chosen by silhouette over
+    2..n_clusters+2, so it may come out lower than requested when the data prefers a
+    coarser split. Pass ``auto_k=False`` to use exactly ``n_clusters`` — legitimate
+    when a consumer wants finer segments for slicing and accepts the silhouette cost.
+    """
 
     frame, code_column = _build_feature_frame(df)
     if frame.empty:
         return frame.assign(CLUSTER=pd.Series(dtype=int), CLUSTER_LABEL=pd.Series(dtype=int))
 
     matrix, numeric = _feature_matrix(frame)
-    cluster_count = _choose_cluster_count(matrix, n_clusters)
+    if auto_k:
+        cluster_count, silhouette = _choose_cluster_count(matrix, n_clusters)
+    else:
+        cluster_count = min(n_clusters, max(1, matrix.shape[0] - 1))
+        if matrix.shape[1] == 0:
+            cluster_count = 1
+        silhouette = float("nan")
+        if cluster_count >= 2:
+            labels = KMeans(n_clusters=cluster_count, random_state=42, n_init=10).fit_predict(matrix)
+            if len(set(labels)) >= 2:
+                silhouette = float(silhouette_score(matrix, labels))
     if cluster_count <= 1:
         frame["CLUSTER"] = 0
     else:
         model = KMeans(n_clusters=cluster_count, random_state=42, n_init=10)
         frame["CLUSTER"] = model.fit_predict(matrix)
+    frame["SILHOUETTE_SCORE"] = silhouette
 
     frame["CLUSTER_LABEL"] = frame["CLUSTER"]
     frame = umap_embed(frame)

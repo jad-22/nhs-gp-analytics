@@ -3,6 +3,8 @@ import pandas as pd
 import pytest
 
 from science.backtesting import (
+    apply_interval_calibration,
+    calibrate_intervals,
     compare_models,
     generate_cutoffs,
     linear_forecast,
@@ -127,6 +129,59 @@ def test_score_by_horizon_groups_by_months_ahead() -> None:
     assert list(by_horizon.index) == list(range(1, 13))
     # Naive error grows linearly with horizon on a trending series.
     assert by_horizon.loc[12, "mae"] > by_horizon.loc[1, "mae"]
+
+
+def test_calibrate_intervals_takes_per_horizon_quantiles() -> None:
+    results = pd.DataFrame(
+        {
+            "y": [100.0] * 10 + [100.0] * 10,
+            "yhat": [101.0] * 10 + [105.0] * 10,
+            "months_ahead": [1] * 10 + [2] * 10,
+        }
+    )
+
+    calibration = calibrate_intervals(results, level=0.8)
+
+    assert list(calibration.columns) == ["months_ahead", "half_width"]
+    assert calibration.set_index("months_ahead").loc[1, "half_width"] == pytest.approx(1.0)
+    assert calibration.set_index("months_ahead").loc[2, "half_width"] == pytest.approx(5.0)
+    with pytest.raises(ValueError):
+        calibrate_intervals(results, level=1.5)
+
+
+def test_apply_interval_calibration_widens_band_and_clips() -> None:
+    forecast = pd.DataFrame(
+        {
+            "ds": pd.date_range("2025-01-01", periods=3, freq="MS"),
+            "yhat": [10.0, 20.0, 30.0],
+            "yhat_lower": [10.0, 20.0, 30.0],
+            "yhat_upper": [10.0, 20.0, 30.0],
+        }
+    )
+    calibration = pd.DataFrame({"months_ahead": [1, 2], "half_width": [15.0, 5.0]})
+
+    calibrated = apply_interval_calibration(forecast, calibration)
+
+    assert calibrated.iloc[0]["yhat_lower"] == 0.0  # clipped, 10 - 15
+    assert calibrated.iloc[0]["yhat_upper"] == 25.0
+    assert calibrated.iloc[1]["yhat_lower"] == 15.0
+    # Horizon 3 exceeds the calibrated range and reuses the widest known width.
+    assert calibrated.iloc[2]["yhat_upper"] == 30.0 + 15.0
+
+
+def test_calibration_restores_backtest_coverage() -> None:
+    # The linear model on a noisy series produces some band; calibrating from the
+    # backtest's own errors must bring coverage to at least the requested level.
+    rng = np.random.default_rng(7)
+    values = 1000 + 10 * np.arange(72, dtype=float) + rng.normal(0, 40, size=72)
+    frame = _monthly_frame(list(values))
+
+    results = rolling_origin_backtest(frame, linear_forecast, horizon=12, initial=36, step=6)
+    calibration = calibrate_intervals(results, level=0.8)
+    recalibrated = apply_interval_calibration(results, calibration)
+
+    coverage = score_backtest(recalibrated)["coverage"]
+    assert coverage >= 0.8
 
 
 def test_compare_models_ranks_linear_first_on_trending_series() -> None:

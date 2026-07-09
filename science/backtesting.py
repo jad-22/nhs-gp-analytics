@@ -240,6 +240,58 @@ def score_by_horizon(results: pd.DataFrame) -> pd.DataFrame:
     return results.groupby("months_ahead").apply(score_backtest)
 
 
+def calibrate_intervals(results: pd.DataFrame, level: float = 0.8) -> pd.DataFrame:
+    """Empirical per-horizon interval half-widths from backtest errors (DEC-007).
+
+    DEC-004 backtesting showed Prophet's native band is badly overconfident (28%
+    coverage at a nominal 80%). This is the conformal-style fix: for each
+    months-ahead step, take the ``level`` quantile of the absolute backtest errors —
+    a band of that half-width around future point forecasts would have covered
+    ``level`` of the actuals. Returns columns months_ahead, half_width.
+    """
+
+    if not 0 < level < 1:
+        raise ValueError("calibrate_intervals expects a level strictly between 0 and 1.")
+    if results.empty:
+        return pd.DataFrame(columns=["months_ahead", "half_width"])
+
+    absolute_error = (results["yhat"] - results["y"]).abs()
+    return (
+        absolute_error.groupby(results["months_ahead"])
+        .quantile(level)
+        .rename("half_width")
+        .reset_index()
+        .astype({"months_ahead": int, "half_width": float})
+    )
+
+
+def apply_interval_calibration(forecast: pd.DataFrame, calibration: pd.DataFrame) -> pd.DataFrame:
+    """Replace a forecast's interval with the calibrated band around yhat.
+
+    ``forecast`` needs ds/yhat (the output of any forecaster here); rows are matched
+    to the calibration by a months_ahead column when present, otherwise by row order
+    (1..n). Horizons beyond the calibrated range reuse the widest available width —
+    a floor, since uncertainty grows with horizon. Lower bounds are clipped at zero.
+    """
+
+    result = forecast.copy()
+    if result.empty or calibration.empty:
+        return result
+
+    if "months_ahead" in result.columns:
+        months_ahead = result["months_ahead"].astype(int)
+    else:
+        months_ahead = pd.Series(np.arange(1, len(result) + 1), index=result.index)
+
+    lookup = calibration.set_index("months_ahead")["half_width"].sort_index()
+    widths = months_ahead.map(lookup)
+    widths = widths.where(months_ahead.isin(lookup.index), float(lookup.max()))
+
+    result["yhat_lower"] = (result["yhat"] - widths).clip(lower=0.0)
+    result["yhat_upper"] = result["yhat"] + widths
+    return result
+
+
 def compare_models(
     df: pd.DataFrame,
     forecasters: dict[str, Forecaster] | None = None,
