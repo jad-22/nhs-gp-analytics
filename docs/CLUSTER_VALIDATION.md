@@ -44,13 +44,15 @@ production actually does:
 | Silhouette across k = 2–12 | Peak 0.225 at k = 2; ~0.20 at production k ≈ 5 | **Weak structure** — the practice population is a continuous cloud, not well-separated groups. No clear inertia elbow |
 | Bootstrap stability (k = 5) | Mean ARI 0.99 | **Highly stable** — K-Means reproducibly carves the same slices |
 | Cramér's V vs clinical system | **0.66** | Substantial confound: the segmentation largely re-discovers the EMIS/SystmOne split, which is itself a one-hot feature |
+| Cluster × system cross-tab | **4 of 5 clusters are 100% pure by system** (two all-EMIS, two all-SystmOne; cluster 4 mixes 69/31) | K-Means partitions by system *first*, then subdivides within each system; the silhouette peak at k = 2 is the EMIS/SystmOne split itself |
 | Cramér's V vs region | 0.33 | Moderate — clusters are not simply regions |
 
 **Interpretation.** Stable-but-weak is a coherent combination: the clusters are
 reproducible *segments* (useful for dashboard slicing) but not natural *types*. They
 should be presented as "similar-practice groups", not as discovered archetypes, and
 the clinical-system alignment means "cluster differs by system" is circular — the
-system was an input.
+system was an input. The purity of the cross-tab shows the one-hot columns are not
+merely *influencing* the partition, they are its top-level split.
 
 ## 4. Recommended follow-ups (evidence-based, not yet applied)
 
