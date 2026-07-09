@@ -108,3 +108,44 @@ Implementation Notes
 - ONSPD preprocessing script: `scripts/extract_onspd_england.py`.
 - IMD preprocessing script: `scripts/prepare_imd_parquet.py`.
 - Enrichment join script: `scripts/join_enrichment.py`.
+
+---
+
+### DEC-004: Validate Forecast Accuracy via Rolling-Origin Backtesting
+
+- Date: 2026-07-09
+- Status: Accepted
+- Scope: Data Science
+
+Context
+- `science/forecasting.py` uses Prophet for 12-month list-size forecasts, but the choice
+  was justified qualitatively (changepoint support for NHS structural breaks,
+  interpretability) with no quantitative evidence.
+- Published benchmarks show Prophet is often beaten by simpler models (ETS, Theta,
+  seasonal naive) on generic series, so the accuracy claim must be measured.
+
+Decision
+- Add a model-agnostic rolling-origin (expanding-window) backtesting harness in
+  `science/backtesting.py` with naive, seasonal-naive, and linear baselines.
+- Adopt MASE (vs seasonal naive) as the primary accuracy metric, with MAE, RMSE, MAPE,
+  and prediction-interval coverage as secondary metrics.
+- Any candidate forecaster must beat seasonal naive (MASE < 1) to be considered; prefer
+  the simplest model within noise of the best.
+
+Rationale
+- Rolling-origin evaluation mirrors real dashboard use (forecast 12 months from a past
+  cutoff, compare against actuals) and avoids judging models on in-sample fit.
+- MASE is scale-free, so results are comparable across national, regional, and
+  practice-level series of very different sizes.
+- A shared harness lets Prophet, its linear fallback, and future candidates
+  (AutoETS, AutoARIMA, Theta) be compared under identical conditions.
+
+Impact
+- Forecast model choice becomes evidence-based; Prophet keeps its place only while it
+  beats the baselines on backtested MASE.
+- Future model candidates plug into `compare_models` as simple callables without
+  changes to the harness.
+
+Implementation Notes
+- Harness and baselines: `science/backtesting.py`; tests: `tests/test_backtesting.py`.
+- Methodology and model-selection protocol: `docs/FORECAST_VALIDATION.md`.
