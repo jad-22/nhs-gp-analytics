@@ -115,8 +115,10 @@ Measured on the national series: self-calibrated coverage 0.83 (nominal 0.80), a
 monotonically from ≈69k patients at 1 month to ≈444k at 12 months — a sanity check
 that the error distribution behaves as expected.
 
-Dashboard integration (calibrating the drill-down band during cache build) is the
-follow-up; until then the native Prophet band should be treated as indicative only.
+Dashboard integration landed as DEC-009: the practice drill-down calibrates the band
+from each practice's own backtest via `calibrated_forecast` (falling back to the
+native band, clearly captioned, when the history is shorter than ~4 years), and users
+can switch between Prophet and the baseline models it was benchmarked against.
 
 ## 6. Related
 

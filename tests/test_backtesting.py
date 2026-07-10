@@ -5,6 +5,7 @@ import pytest
 from science.backtesting import (
     apply_interval_calibration,
     calibrate_intervals,
+    calibrated_forecast,
     compare_models,
     generate_cutoffs,
     linear_forecast,
@@ -182,6 +183,48 @@ def test_calibration_restores_backtest_coverage() -> None:
 
     coverage = score_backtest(recalibrated)["coverage"]
     assert coverage >= 0.8
+
+
+def test_calibrated_forecast_replaces_band_when_history_allows() -> None:
+    rng = np.random.default_rng(3)
+    values = 1000 + 10 * np.arange(60, dtype=float) + rng.normal(0, 30, size=60)
+    frame = _monthly_frame(list(values))
+
+    forecast, calibrated = calibrated_forecast(frame, linear_forecast, periods=12)
+    native = linear_forecast(frame, 12)
+
+    assert calibrated is True
+    assert len(forecast) == 12
+    # Point forecast is untouched; only the band changes.
+    assert np.allclose(forecast["yhat"], native["yhat"])
+    assert (forecast["yhat_lower"] <= forecast["yhat"]).all()
+    assert (forecast["yhat_upper"] >= forecast["yhat"]).all()
+
+
+def test_calibrated_forecast_keeps_native_band_on_short_history() -> None:
+    frame = _monthly_frame([1000.0 + 10 * i for i in range(20)])  # < initial + periods
+
+    forecast, calibrated = calibrated_forecast(frame, linear_forecast, periods=12)
+    native = linear_forecast(frame, 12)
+
+    assert calibrated is False
+    assert np.allclose(forecast["yhat_upper"], native["yhat_upper"])
+
+
+def test_dashboard_forecast_model_registry() -> None:
+    from dashboard.data import FORECAST_MODELS, forecast_model_options
+
+    options = forecast_model_options()
+    assert set(options).issubset(FORECAST_MODELS)
+    assert {"Linear trend", "Seasonal naive", "Naive (last value)"}.issubset(options)
+
+    frame = _monthly_frame([100.0 + i for i in range(30)])
+    for label in options:
+        if label.startswith("Prophet"):
+            continue  # Prophet fit is exercised by the science tests when installed.
+        forecast = FORECAST_MODELS[label](frame, 3)
+        assert list(forecast.columns) == ["ds", "yhat", "yhat_lower", "yhat_upper"]
+        assert len(forecast) == 3
 
 
 def test_compare_models_ranks_linear_first_on_trending_series() -> None:

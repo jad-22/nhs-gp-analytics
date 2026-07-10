@@ -311,3 +311,43 @@ Implementation Notes
 - `science/clustering.py` (`cluster_practices_by_k`, `_attach_cluster_profiles`),
   `scripts/build_dashboard_cache.py` (`build_cluster_k`), `dashboard/data.py`
   (`load_cluster_k`), `dashboard/pages/3_Deprivation_Analysis.py`.
+
+---
+
+### DEC-009: Drill-Down Forecasts Get Calibrated Bands and a Model Selector
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science / Dashboard
+
+Context
+- DEC-007 built interval calibration but left the dashboard's practice drill-down
+  serving Prophet's native band, which backtesting showed is overconfident.
+- DEC-004 established Prophet as the accuracy winner, but users had no way to see the
+  baselines it was measured against.
+
+Decision
+- `calibrated_forecast` (science/backtesting.py) wraps any forecaster: it backtests
+  the series' own history, calibrates the 80% band per horizon, and reports whether
+  calibration was feasible (needs ~initial + horizon months of history).
+- The drill-down (`practice_history_with_forecast`) uses it and gains a model
+  selector: Prophet (recommended/default), linear trend, seasonal naive, and naive.
+  The Prophet option is hidden when the package is unavailable, so its label never
+  silently serves the linear fallback.
+- A caption states whether the band is calibrated or native-indicative.
+
+Rationale
+- Per-practice calibration reflects that individual practice series are far noisier
+  than the national aggregate — one national calibration would misstate them.
+- Measured on a full-history practice: Prophet + calibration completes in ~3 seconds
+  (cached per practice/model for an hour); baselines are instant. Short histories
+  degrade gracefully to the native band with an honest caption.
+
+Impact
+- The dashboard band becomes trustworthy where history allows, and the model choice
+  is the user's, with Prophet's recommendation visible rather than imposed.
+
+Implementation Notes
+- `science/backtesting.py` (`calibrated_forecast`), `dashboard/data.py`
+  (`FORECAST_MODELS`, `forecast_model_options`, `practice_history_with_forecast`),
+  `dashboard/pages/1_List_Size_Trends.py`; tests in `tests/test_backtesting.py`.

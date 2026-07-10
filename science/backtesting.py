@@ -292,6 +292,38 @@ def apply_interval_calibration(forecast: pd.DataFrame, calibration: pd.DataFrame
     return result
 
 
+def calibrated_forecast(
+    df: pd.DataFrame,
+    forecaster: Forecaster,
+    periods: int = 12,
+    level: float = 0.8,
+    initial: int = 36,
+    step: int = 6,
+) -> tuple[pd.DataFrame, bool]:
+    """Forecast with an interval calibrated from the series' own backtest (DEC-009).
+
+    Runs a rolling-origin backtest of ``forecaster`` on the series and, when at least
+    one cutoff is feasible, replaces the native band with per-horizon calibrated
+    widths (see ``calibrate_intervals``). Returns ``(forecast, calibrated)`` —
+    ``calibrated=False`` means the history was too short to backtest (needs
+    ``initial + periods`` months), so the model's native band survived and should be
+    presented as indicative only.
+    """
+
+    forecast = forecaster(df, periods)
+    if forecast.empty:
+        return forecast, False
+
+    results = rolling_origin_backtest(df, forecaster, horizon=periods, initial=initial, step=step)
+    if results.empty:
+        return forecast, False
+
+    calibration = calibrate_intervals(results, level=level)
+    if calibration.empty:
+        return forecast, False
+    return apply_interval_calibration(forecast, calibration), True
+
+
 def compare_models(
     df: pd.DataFrame,
     forecasters: dict[str, Forecaster] | None = None,

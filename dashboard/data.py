@@ -20,7 +20,36 @@ except ModuleNotFoundError:  # pragma: no cover - test environments may omit Str
 
     st = _StreamlitShim()
 
-from science.forecasting import forecast_list_size
+from science.backtesting import (
+    Forecaster,
+    calibrated_forecast,
+    linear_forecast,
+    naive_forecast,
+    seasonal_naive_forecast,
+)
+from science.forecasting import Prophet, forecast_list_size
+
+# Drill-down forecast models (DEC-009). Prophet is the DEC-004 backtest winner and
+# the default; the baselines are offered for comparison. Keys are UI labels.
+FORECAST_MODELS: dict[str, Forecaster] = {
+    "Prophet (recommended)": forecast_list_size,
+    "Linear trend": linear_forecast,
+    "Seasonal naive": seasonal_naive_forecast,
+    "Naive (last value)": naive_forecast,
+}
+
+
+def forecast_model_options() -> list[str]:
+    """UI labels for the forecast model selector.
+
+    Prophet is dropped when the package is unavailable so its label never silently
+    serves the linear fallback inside forecast_list_size.
+    """
+
+    options = list(FORECAST_MODELS)
+    if Prophet is None:
+        options.remove("Prophet (recommended)")
+    return options
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
@@ -271,20 +300,30 @@ def code_from_option(option: str) -> str | None:
 
 
 @st.cache_data(ttl=3600)
-def practice_history_with_forecast(practice_code: str, periods: int = 12) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Return one practice history plus cached forecast."""
+def practice_history_with_forecast(
+    practice_code: str,
+    periods: int = 12,
+    model: str = "Prophet (recommended)",
+) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+    """Return one practice history, its forecast, and whether the band is calibrated.
+
+    The interval is calibrated from the practice's own rolling-origin backtest when
+    the history is long enough (DEC-007/DEC-009); ``calibrated=False`` means the
+    model's native band survived and should be presented as indicative only.
+    """
 
     list_size = load_list_size()
     if list_size.empty:
-        return _empty(), _empty()
+        return _empty(), _empty(), False
 
     history = list_size.loc[list_size["CODE"] == practice_code, ["SNAPSHOT_DATE", "CODE", "NUMBER_OF_PATIENTS"]].copy()
     history = history.sort_values("SNAPSHOT_DATE").reset_index(drop=True)
     if history.empty:
-        return history, _empty()
+        return history, _empty(), False
 
-    forecast = forecast_list_size(history, periods=periods)
-    return history, forecast
+    forecaster = FORECAST_MODELS.get(model, forecast_list_size)
+    forecast, calibrated = calibrated_forecast(history, forecaster, periods=periods)
+    return history, forecast, calibrated
 
 
 def format_int(value: object) -> str:
@@ -306,7 +345,9 @@ def format_pct(value: object) -> str:
 
 
 __all__ = [
+    "FORECAST_MODELS",
     "PageFilters",
+    "forecast_model_options",
     "aggregate_list_size",
     "aggregate_market_share",
     "as_page_filters",
