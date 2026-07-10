@@ -22,6 +22,7 @@ from dashboard.data import (
     filter_frame,
     format_int,
     format_pct,
+    load_cluster_k,
     load_correlations,
     load_deprivation_latest,
     load_inequality,
@@ -70,7 +71,28 @@ left, right = st.columns(2, gap="large")
 with left:
     st.plotly_chart(deprivation_scatter(latest, "Practice size vs IMD score"), use_container_width=True)
 with right:
-    st.plotly_chart(cluster_scatter(latest, "Cluster explorer"), use_container_width=True)
+    cluster_k = filter_frame(load_cluster_k(), filters)
+    if cluster_k.empty or "K" not in cluster_k.columns:
+        # Stale cache without cluster_k.parquet - fall back to the single cached partition.
+        st.plotly_chart(cluster_scatter(latest, "Cluster explorer"), use_container_width=True)
+    else:
+        silhouettes = cluster_k.drop_duplicates("K").set_index("K")["SILHOUETTE_SCORE"].sort_index()
+        best_k = int(silhouettes.idxmax())
+        chosen_k = st.select_slider(
+            "Cluster count (k)",
+            options=[int(k) for k in silhouettes.index],
+            value=best_k,
+            help="Segments are precomputed for each k during the cache build; the default is the k with the best silhouette score.",
+        )
+        st.plotly_chart(
+            cluster_scatter(cluster_k.loc[cluster_k["K"] == chosen_k], f"Cluster explorer - k = {chosen_k}"),
+            use_container_width=True,
+        )
+        st.caption(
+            f"Silhouette at k = {chosen_k}: {silhouettes[chosen_k]:.2f}"
+            f" - best k = {best_k} ({silhouettes[best_k]:.2f})."
+            " Scores are computed on all practices, before sidebar filters."
+        )
 
 st.markdown("---")
 st.markdown("<h2>Inequality trends</h2>", unsafe_allow_html=True)

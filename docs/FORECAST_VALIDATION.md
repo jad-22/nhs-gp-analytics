@@ -96,7 +96,31 @@ Also inspect errors **by horizon** (is month 1 good but month 12 useless?) and
 5. Optional extensions: Diebold-Mariano test for statistical significance of accuracy
    differences; per-region model selection if winners genuinely differ by region.
 
-## 5. Related
+## 5. Interval calibration (DEC-007)
+
+Backtesting on real data confirmed Prophet's point accuracy (national MASE 0.213) but
+exposed a badly overconfident uncertainty band: ~28-35% coverage at a nominal 80%.
+The fix is conformal-style empirical calibration, implemented in
+`science/backtesting.py`:
+
+1. `calibrate_intervals(backtest_results, level=0.8)` — per months-ahead horizon,
+   take the `level` quantile of the absolute backtest errors. That half-width would
+   have covered `level` of the actuals at that horizon.
+2. `apply_interval_calibration(forecast, calibration)` — rebuild the band around the
+   point forecast using those widths (widest known width beyond the calibrated range;
+   lower bound clipped at 0).
+
+Measured on the national series: self-calibrated coverage 0.83 (nominal 0.80), and
+1.0 on a held-out cutoff where the native band managed 0.5. The calibrated widths grow
+monotonically from ≈69k patients at 1 month to ≈444k at 12 months — a sanity check
+that the error distribution behaves as expected.
+
+Dashboard integration landed as DEC-009: the practice drill-down calibrates the band
+from each practice's own backtest via `calibrated_forecast` (falling back to the
+native band, clearly captioned, when the history is shorter than ~4 years), and users
+can switch between Prophet and the baseline models it was benchmarked against.
+
+## 6. Related
 
 - Implementation: `science/backtesting.py`, tests in `tests/test_backtesting.py`
 - Forecaster under test: `science/forecasting.py` (`forecast_list_size`)

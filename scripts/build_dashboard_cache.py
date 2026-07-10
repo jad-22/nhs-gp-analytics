@@ -19,7 +19,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from pipeline.config import DATA_PROCESSED_DIR, LIST_SIZE_PARQUET_PATH, MAPPING_PARQUET_PATH
 from science.anomaly import flag_anomalies
-from science.clustering import cluster_practices
+from science.clustering import cluster_practices, cluster_practices_by_k
 from science.deprivation import flag_underserved, regional_inequality, size_imd_correlation
 
 CACHE_DIR = DATA_PROCESSED_DIR / "dashboard"
@@ -167,6 +167,33 @@ def build_deprivation_latest(latest: pd.DataFrame) -> pd.DataFrame:
     return clustered.reset_index(drop=True)
 
 
+def build_cluster_k(latest: pd.DataFrame) -> pd.DataFrame:
+    """Precompute cluster assignments for k = 2..10 for the interactive explorer."""
+
+    by_k = cluster_practices_by_k(latest, k_values=range(2, 11))
+    keep = [
+        "K",
+        "CLUSTER",
+        "SILHOUETTE_SCORE",
+        "UMAP_X",
+        "UMAP_Y",
+        "CODE",
+        "PRACTICE_CODE",
+        "PRACTICE_NAME",
+        "REGION_NAME",
+        "ICB_NAME",
+        "NUMBER_OF_PATIENTS",
+        "IMD_DECILE",
+        "CLINICAL_SYSTEM",
+        "CLUSTER_SIZE",
+        "CLUSTER_AVG_PATIENTS",
+        "CLUSTER_AVG_IMD_DECILE",
+        "CLUSTER_DOMINANT_SYSTEM",
+    ]
+    available = [column for column in keep if column in by_k.columns]
+    return by_k[available].reset_index(drop=True)
+
+
 def build_inequality(joined: pd.DataFrame) -> pd.DataFrame:
     required = joined.dropna(subset=["IMD_DECILE"]).copy()
     if required.empty:
@@ -195,6 +222,7 @@ def write_cache(output_dir: Path = CACHE_DIR, *, skip_anomalies: bool = False) -
         "market_share.parquet": build_market_share(joined),
         "migrations.parquet": build_migrations(joined),
         "deprivation_latest.parquet": build_deprivation_latest(latest),
+        "cluster_k.parquet": build_cluster_k(latest),
         "inequality.parquet": build_inequality(joined),
         "correlations.parquet": build_correlations(latest),
     }

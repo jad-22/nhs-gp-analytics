@@ -192,3 +192,162 @@ Implementation Notes
 - Diagnostics: `science/cluster_validation.py`; tests: `tests/test_cluster_validation.py`.
 - Findings and interpretation: `docs/CLUSTER_VALIDATION.md`; notebook section in
   `notebooks/exploration.ipynb`.
+
+---
+
+### DEC-006: Cluster on Numeric Features Only; Categoricals Become Profiles
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science
+
+Context
+- DEC-005 validation showed the K-Means partition was dominated by the one-hot
+  clinical-system/region columns: four of five clusters were 100% pure by clinical
+  system (Cramér's V 0.66), making cluster-vs-system observations circular.
+- `AGE_MONTHS` was constant (0) on single-snapshot input — a dead feature.
+- The silhouette-based k search only examined `requested ± 1`, and the quality score
+  was discarded.
+
+Decision
+- The K-Means feature matrix uses standardised numeric features only
+  (`LOG_PATIENTS`, `IMD_DECILE`, `AGE_MONTHS`); constant columns are dropped
+  automatically. Region and clinical system are no longer distance features — they
+  are reported as cluster profiles (dominant values) only.
+- Widen the k search to 2..requested+2 and surface the winning silhouette as a
+  SILHOUETTE_SCORE output column.
+- Add `auto_k=False` for consumers that need exactly `n_clusters` segments.
+
+Rationale
+- Removing the confound makes cluster→category observations legitimate findings
+  rather than echoes of the inputs.
+- Measured on the June 2026 snapshot, the fix raised silhouette from 0.225 to 0.398,
+  collapsed the clinical-system Cramér's V from 0.66 to 0.02, and kept bootstrap
+  stability at ARI ≈ 0.99.
+
+Impact
+- With `auto_k` the production cluster count drops to the data-preferred k = 2, so the
+  dashboard cluster explorer shows two segments after a cache rebuild; pass
+  `auto_k=False` in `scripts/build_dashboard_cache.py` to keep six fixed segments.
+- Post-fix numbers: `docs/CLUSTER_VALIDATION.md` §5.
+
+Implementation Notes
+- `science/clustering.py` (`_feature_matrix`, `_choose_cluster_count`,
+  `cluster_practices`); tests in `tests/test_science.py`.
+
+---
+
+### DEC-007: Calibrate Forecast Intervals from Backtest Errors
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science
+
+Context
+- DEC-004 backtesting showed Prophet's point accuracy is best-in-class here, but its
+  nominal-80% uncertainty band covered only ~28-35% of actuals — the dashboard's
+  confidence band was materially overconfident.
+
+Decision
+- Add conformal-style empirical calibration in `science/backtesting.py`:
+  `calibrate_intervals` takes per-horizon quantiles of absolute backtest errors, and
+  `apply_interval_calibration` rebuilds the band around the point forecast. Horizons
+  beyond the calibrated range reuse the widest known width; lower bounds clip at 0.
+
+Rationale
+- Backtest residuals measure the *actual* error distribution at each horizon, so a
+  band built from their quantiles attains the nominal level by construction on the
+  data it was fitted to, and approximately out of sample.
+- Measured on the national series: coverage 0.83 after self-calibration (nominal
+  0.80), and 1.0 on a held-out cutoff (vs 0.5 native).
+
+Impact
+- Dashboard integration (calibrating the drill-down forecast band during cache build)
+  is the follow-up step; until then the native Prophet band remains on the dashboard
+  and should be treated as indicative only.
+
+Implementation Notes
+- `science/backtesting.py`; tests in `tests/test_backtesting.py`; demo cells in
+  `notebooks/exploration.ipynb`; methodology note in `docs/FORECAST_VALIDATION.md`.
+
+---
+
+### DEC-008: Precompute Cluster Partitions for k = 2..10; User-Selectable k
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science / Dashboard
+
+Context
+- DEC-006's `auto_k` follows the silhouette, which picks k = 2 on current data — a
+  statistically honest but coarse segmentation for the dashboard cluster explorer.
+- K-Means is cheap once features and the UMAP embedding are fixed (both are
+  k-independent), so alternative partitions can be precomputed rather than chosen
+  once at build time.
+
+Decision
+- `cluster_practices_by_k` (science/clustering.py) computes features and UMAP once,
+  then fits K-Means for each k in a restricted 2..10 range, returning a long frame
+  (one row per practice per K) with per-k SILHOUETTE_SCORE.
+- The cache build writes it as `cluster_k.parquet`; the Deprivation Analysis page
+  renders a k slider defaulting to the silhouette-best k, with the silhouette shown
+  as a caption so users see the quality cost of their choice.
+
+Rationale
+- Lets users trade statistical honesty (k = 2) against slicing granularity without a
+  rebuild, while the default still follows the evidence.
+- Restricting to k ≤ 10 bounds cache size (~9 × practice count rows) and avoids
+  offering partitions the silhouette sweep showed to be meaningless.
+
+Impact
+- New cache file `cluster_k.parquet`; `cache_health` treats it as required, so
+  existing deployments show the rebuild warning until
+  `python scripts/build_dashboard_cache.py` is re-run.
+- `deprivation_latest.parquet` is unchanged (still carries the auto_k partition) so
+  the map, KPIs, and under-served table are unaffected; the page falls back to it if
+  the new cache file is missing.
+
+Implementation Notes
+- `science/clustering.py` (`cluster_practices_by_k`, `_attach_cluster_profiles`),
+  `scripts/build_dashboard_cache.py` (`build_cluster_k`), `dashboard/data.py`
+  (`load_cluster_k`), `dashboard/pages/3_Deprivation_Analysis.py`.
+
+---
+
+### DEC-009: Drill-Down Forecasts Get Calibrated Bands and a Model Selector
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science / Dashboard
+
+Context
+- DEC-007 built interval calibration but left the dashboard's practice drill-down
+  serving Prophet's native band, which backtesting showed is overconfident.
+- DEC-004 established Prophet as the accuracy winner, but users had no way to see the
+  baselines it was measured against.
+
+Decision
+- `calibrated_forecast` (science/backtesting.py) wraps any forecaster: it backtests
+  the series' own history, calibrates the 80% band per horizon, and reports whether
+  calibration was feasible (needs ~initial + horizon months of history).
+- The drill-down (`practice_history_with_forecast`) uses it and gains a model
+  selector: Prophet (recommended/default), linear trend, seasonal naive, and naive.
+  The Prophet option is hidden when the package is unavailable, so its label never
+  silently serves the linear fallback.
+- A caption states whether the band is calibrated or native-indicative.
+
+Rationale
+- Per-practice calibration reflects that individual practice series are far noisier
+  than the national aggregate — one national calibration would misstate them.
+- Measured on a full-history practice: Prophet + calibration completes in ~3 seconds
+  (cached per practice/model for an hour); baselines are instant. Short histories
+  degrade gracefully to the native band with an honest caption.
+
+Impact
+- The dashboard band becomes trustworthy where history allows, and the model choice
+  is the user's, with Prophet's recommendation visible rather than imposed.
+
+Implementation Notes
+- `science/backtesting.py` (`calibrated_forecast`), `dashboard/data.py`
+  (`FORECAST_MODELS`, `forecast_model_options`, `practice_history_with_forecast`),
+  `dashboard/pages/1_List_Size_Trends.py`; tests in `tests/test_backtesting.py`.
