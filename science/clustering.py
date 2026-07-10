@@ -172,6 +172,11 @@ def cluster_practices(df: pd.DataFrame, n_clusters: int = 6, auto_k: bool = True
 
     frame["CLUSTER_LABEL"] = frame["CLUSTER"]
     frame = umap_embed(frame)
+    return _attach_cluster_profiles(frame, code_column)
+
+
+def _attach_cluster_profiles(frame: pd.DataFrame, code_column: str) -> pd.DataFrame:
+    """Merge per-cluster profile summaries onto clustered rows."""
 
     cluster_summary = (
         frame.groupby("CLUSTER", dropna=False)
@@ -193,3 +198,38 @@ def cluster_practices(df: pd.DataFrame, n_clusters: int = 6, auto_k: bool = True
 
     frame = frame.merge(cluster_summary, on="CLUSTER", how="left")
     return frame.sort_values(["CLUSTER", code_column]).reset_index(drop=True)
+
+
+def cluster_practices_by_k(df: pd.DataFrame, k_values: range | list[int] = range(2, 11)) -> pd.DataFrame:
+    """Cluster once per candidate k so a consumer can switch interactively (DEC-008).
+
+    The feature matrix and UMAP embedding are k-independent and computed once; only
+    the K-Means fit, silhouette, and profiles vary per k. Returns a long frame with
+    one row per practice per K (columns K, CLUSTER, SILHOUETTE_SCORE plus the usual
+    cluster_practices outputs); infeasible k values are skipped.
+    """
+
+    frame, code_column = _build_feature_frame(df)
+    if frame.empty:
+        return frame.assign(K=pd.Series(dtype=int), CLUSTER=pd.Series(dtype=int))
+
+    matrix, _ = _feature_matrix(frame)
+    frame = umap_embed(frame)
+
+    partitions = []
+    for k in k_values:
+        if k < 2 or k >= len(frame) or matrix.shape[1] == 0:
+            continue
+        labels = KMeans(n_clusters=k, random_state=42, n_init=10).fit_predict(matrix)
+        if len(set(labels)) < 2:
+            continue
+        partition = frame.copy()
+        partition["K"] = int(k)
+        partition["CLUSTER"] = labels
+        partition["CLUSTER_LABEL"] = labels
+        partition["SILHOUETTE_SCORE"] = float(silhouette_score(matrix, labels))
+        partitions.append(_attach_cluster_profiles(partition, code_column))
+
+    if not partitions:
+        return frame.assign(K=pd.Series(dtype=int), CLUSTER=pd.Series(dtype=int))
+    return pd.concat(partitions, ignore_index=True)

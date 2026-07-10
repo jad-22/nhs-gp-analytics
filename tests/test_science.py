@@ -125,6 +125,35 @@ def test_cluster_practices_not_partitioned_by_clinical_system() -> None:
     assert result.groupby("CLUSTER")["CLINICAL_SYSTEM"].nunique().eq(2).all()
 
 
+def test_cluster_practices_by_k_returns_partition_per_k() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "SNAPSHOT_DATE": datetime(2024, 1, 1),
+                "PRACTICE_CODE": f"A{i}",
+                "NUMBER_OF_PATIENTS": 1000 + i * 977,
+                "IMD_DECILE": ((i * 3) % 10) + 1,
+                "CLINICAL_SYSTEM": "EMIS Web" if i % 2 else "SystmOne",
+            }
+            for i in range(20)
+        ]
+    )
+
+    from science.clustering import cluster_practices_by_k
+
+    by_k = cluster_practices_by_k(frame, k_values=range(2, 6))
+
+    assert sorted(by_k["K"].unique()) == [2, 3, 4, 5]
+    assert len(by_k) == 20 * 4
+    # Each partition uses exactly its k clusters and carries one silhouette score.
+    per_k = by_k.groupby("K").agg(clusters=("CLUSTER", "nunique"), silhouettes=("SILHOUETTE_SCORE", "nunique"))
+    assert per_k["clusters"].eq(per_k.index).all()
+    assert per_k["silhouettes"].eq(1).all()
+    # UMAP coordinates are k-independent: identical for a practice across partitions.
+    assert by_k.groupby("PRACTICE_CODE")["UMAP_X"].nunique().eq(1).all()
+    assert {"CLUSTER_SIZE", "CLUSTER_AVG_PATIENTS", "CLUSTER_DOMINANT_SYSTEM"}.issubset(by_k.columns)
+
+
 def test_cluster_practices_fixed_k_honours_request() -> None:
     frame = pd.DataFrame(
         [

@@ -34,6 +34,7 @@ MARKET_SHARE_PATH = CACHE_DIR / "market_share.parquet"
 MIGRATIONS_PATH = CACHE_DIR / "migrations.parquet"
 ANOMALIES_PATH = CACHE_DIR / "anomalies.parquet"
 DEPRIVATION_LATEST_PATH = CACHE_DIR / "deprivation_latest.parquet"
+CLUSTER_K_PATH = CACHE_DIR / "cluster_k.parquet"
 INEQUALITY_PATH = CACHE_DIR / "inequality.parquet"
 CORRELATIONS_PATH = CACHE_DIR / "correlations.parquet"
 
@@ -101,6 +102,13 @@ def load_deprivation_latest() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600)
+def load_cluster_k() -> pd.DataFrame:
+    """Load precomputed cluster assignments for k = 2..10 (DEC-008)."""
+
+    return _read_parquet(CLUSTER_K_PATH)
+
+
+@st.cache_data(ttl=3600)
 def load_inequality() -> pd.DataFrame:
     """Load cached inequality time series."""
 
@@ -131,6 +139,7 @@ def cache_health() -> tuple[bool, list[str]]:
         MIGRATIONS_PATH,
         ANOMALIES_PATH,
         DEPRIVATION_LATEST_PATH,
+        CLUSTER_K_PATH,
         INEQUALITY_PATH,
         CORRELATIONS_PATH,
     ]
@@ -308,6 +317,7 @@ __all__ = [
     "format_pct",
     "latest_market_heatmap",
     "load_anomalies",
+    "load_cluster_k",
     "load_correlations",
     "load_deprivation_latest",
     "load_inequality",

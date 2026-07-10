@@ -269,3 +269,45 @@ Impact
 Implementation Notes
 - `science/backtesting.py`; tests in `tests/test_backtesting.py`; demo cells in
   `notebooks/exploration.ipynb`; methodology note in `docs/FORECAST_VALIDATION.md`.
+
+---
+
+### DEC-008: Precompute Cluster Partitions for k = 2..10; User-Selectable k
+
+- Date: 2026-07-10
+- Status: Accepted
+- Scope: Data Science / Dashboard
+
+Context
+- DEC-006's `auto_k` follows the silhouette, which picks k = 2 on current data — a
+  statistically honest but coarse segmentation for the dashboard cluster explorer.
+- K-Means is cheap once features and the UMAP embedding are fixed (both are
+  k-independent), so alternative partitions can be precomputed rather than chosen
+  once at build time.
+
+Decision
+- `cluster_practices_by_k` (science/clustering.py) computes features and UMAP once,
+  then fits K-Means for each k in a restricted 2..10 range, returning a long frame
+  (one row per practice per K) with per-k SILHOUETTE_SCORE.
+- The cache build writes it as `cluster_k.parquet`; the Deprivation Analysis page
+  renders a k slider defaulting to the silhouette-best k, with the silhouette shown
+  as a caption so users see the quality cost of their choice.
+
+Rationale
+- Lets users trade statistical honesty (k = 2) against slicing granularity without a
+  rebuild, while the default still follows the evidence.
+- Restricting to k ≤ 10 bounds cache size (~9 × practice count rows) and avoids
+  offering partitions the silhouette sweep showed to be meaningless.
+
+Impact
+- New cache file `cluster_k.parquet`; `cache_health` treats it as required, so
+  existing deployments show the rebuild warning until
+  `python scripts/build_dashboard_cache.py` is re-run.
+- `deprivation_latest.parquet` is unchanged (still carries the auto_k partition) so
+  the map, KPIs, and under-served table are unaffected; the page falls back to it if
+  the new cache file is missing.
+
+Implementation Notes
+- `science/clustering.py` (`cluster_practices_by_k`, `_attach_cluster_profiles`),
+  `scripts/build_dashboard_cache.py` (`build_cluster_k`), `dashboard/data.py`
+  (`load_cluster_k`), `dashboard/pages/3_Deprivation_Analysis.py`.

@@ -76,10 +76,10 @@ merely *influencing* the partition, they are its top-level split.
 | Production cluster count (`auto_k`) | 5 | **2** — the data's preferred split |
 
 The structure is still moderate rather than strong (silhouette < 0.5), so the
-"segments, not archetypes" presentation guidance stands. Note the `auto_k` default
-now yields two segments in the dashboard cluster explorer after a cache rebuild —
-pass `auto_k=False` in `scripts/build_dashboard_cache.py` if six fixed segments are
-preferred for slicing.
+"segments, not archetypes" presentation guidance stands. Rather than pinning one k,
+the dashboard now precomputes partitions for k = 2–10 (`cluster_k.parquet`, DEC-008)
+and lets the user pick, defaulting to the silhouette-best k with the score displayed —
+so the granularity/quality trade-off is the user's, made with the evidence visible.
 
 ## 6. Related
 
