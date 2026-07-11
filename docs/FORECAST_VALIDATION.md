@@ -48,15 +48,15 @@ Roughly in order of priority for this dataset (monthly, smooth, strongly trended
 | Family | Implementation | Why relevant |
 |---|---|---|
 | Naive baselines | `science/backtesting.py` (seasonal naive, naive, linear) | The yardstick. Any model that cannot beat seasonal naive is not earning its keep. |
-| ETS / exponential smoothing | `statsmodels` Holt-Winters or `statsforecast.AutoETS` | Frequently the best performer on smooth monthly administrative data. |
-| (S)ARIMA | `statsforecast.AutoARIMA` or `pmdarima` | Classical workhorse; handles autocorrelation Prophet ignores. |
+| ETS / exponential smoothing | **Implemented (DEC-010):** `science/stat_forecasting.py` — Holt-Winters via statsmodels `ETSModel`, plus `statsforecast.AutoETS` | Frequently the best performer on smooth monthly administrative data. |
+| (S)ARIMA | **Implemented (DEC-010):** `science/stat_forecasting.py` — ARIMA(1,1,1)+drift and airline SARIMA (0,1,1)(0,1,1)₁₂ via statsmodels `SARIMAX` | Classical workhorse; handles autocorrelation Prophet ignores. |
 | Theta | `statsforecast.AutoTheta` | Won the M3 competition; absurdly strong for its simplicity. |
 | Gradient boosting on lag features | LightGBM via `mlforecast` / `sktime` | Wins when many related series are pooled into one global model; higher engineering cost. |
 | Neural (NeuralProphet, N-BEATS, TFT) | `neuralprophet`, `darts` | Usually overkill for smooth monthly data with 5–10 years of history. |
 
 Expectation: AutoETS / Theta are Prophet's stiffest competition here. The interesting
 question is whether Prophet's changepoint handling around the April 2023 PDS transition
-buys back any accuracy difference.
+buys back any accuracy difference. **Measured answer: see §6.**
 
 ## 3. Validation Methodology: Rolling-Origin Backtesting
 
@@ -120,9 +120,51 @@ from each practice's own backtest via `calibrated_forecast` (falling back to the
 native band, clearly captioned, when the history is shorter than ~4 years), and users
 can switch between Prophet and the baseline models it was benchmarked against.
 
-## 6. Related
+## 6. Classical statistical models, measured (DEC-010)
 
-- Implementation: `science/backtesting.py`, tests in `tests/test_backtesting.py`
+`science/stat_forecasting.py` implements the priority candidates from §2 behind the
+same `Forecaster` contract and guards as Prophet (native 80% band, linear fallback
+below 24 months or on a failed fit, excluded from every registry when the library is
+missing). `default_forecasters()` and the dashboard's drill-down selector pick them
+up automatically.
+
+Rolling-origin results on real data (July 2026 vintage, defaults: horizon 12,
+initial 36, step 6):
+
+**National series (78 months, 72 scored forecasts per model):**
+
+| Model | MASE | MAE (patients) | Native 80% coverage |
+|---|---|---|---|
+| Holt-Winters | **0.211** | 152,339 | 0.65 |
+| Prophet | 0.213 | 152,904 | 0.35 |
+| ARIMA(1,1,1)+drift | 0.227 | 162,450 | 0.65 |
+| AutoETS | 0.250 | 178,708 | 0.58 |
+| Linear | 0.357 | 253,552 | 0.64 |
+| Naive | 0.409 | 287,293 | 0.39 |
+| SARIMA (airline) | 0.549 | 377,153 | 0.72 |
+| Seasonal naive | 0.889 | 627,673 | 0.18 |
+
+**Regional (median MASE across the 7 commissioning regions):** Holt-Winters 0.183,
+ARIMA 0.195, AutoETS 0.197, Prophet 0.198, linear 0.274, naive 0.396, seasonal naive
+0.873, SARIMA 1.289. Prophet and Holt-Winters each win 3 regions, ARIMA one.
+
+Takeaways:
+
+1. **Holt-Winters ties Prophet nationally and edges it regionally**, with a far more
+   honest native band. Under the §4 "simplest model within noise" rule it is now a
+   live candidate for the recommended default — an open product decision; Prophet
+   keeps the recommendation for the moment on changepoint support.
+2. **ARIMA-with-drift runs close everywhere despite ignoring seasonality** — these
+   series are dominated by trend and autocorrelation, not seasonal structure.
+3. **The airline SARIMA fails hard** (worse than seasonal naive in several regions):
+   seasonal differencing amplifies the 2023 NHAIS→PDS structural break instead of
+   absorbing it. A reminder that classical defaults are not robust to known breaks —
+   exactly the situation Prophet's explicit changepoints were chosen for.
+
+## 7. Related
+
+- Implementation: `science/backtesting.py` and `science/stat_forecasting.py`,
+  tests in `tests/test_backtesting.py` and `tests/test_stat_forecasting.py`
 - Forecaster under test: `science/forecasting.py` (`forecast_list_size`)
-- Decision record: `docs/DECISION_LOG.md` DEC-004
+- Decision records: `docs/DECISION_LOG.md` DEC-004, DEC-007, DEC-009, DEC-010
 - Spec context: `docs/PROJECT_SPEC.md` §6.1

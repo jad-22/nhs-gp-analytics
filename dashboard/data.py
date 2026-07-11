@@ -28,28 +28,49 @@ from science.backtesting import (
     seasonal_naive_forecast,
 )
 from science.forecasting import Prophet, forecast_list_size
+from science.stat_forecasting import (
+    AutoETS,
+    ETSModel,
+    SARIMAX,
+    arima_forecast,
+    autoets_forecast,
+    holt_winters_forecast,
+    sarima_forecast,
+)
 
-# Drill-down forecast models (DEC-009). Prophet is the DEC-004 backtest winner and
-# the default; the baselines are offered for comparison. Keys are UI labels.
+# Drill-down forecast models (DEC-009/DEC-010). Prophet is the DEC-004 backtest
+# winner and the default; the classical statistical models and the harness baselines
+# are offered for comparison. Keys are UI labels.
 FORECAST_MODELS: dict[str, Forecaster] = {
     "Prophet (recommended)": forecast_list_size,
+    "AutoETS": autoets_forecast,
+    "Holt-Winters": holt_winters_forecast,
+    "SARIMA": sarima_forecast,
+    "ARIMA": arima_forecast,
     "Linear trend": linear_forecast,
     "Seasonal naive": seasonal_naive_forecast,
     "Naive (last value)": naive_forecast,
 }
 
+# The library symbol each optional model needs; None means not installed and the
+# label is hidden so it never silently serves the linear fallback (DEC-009 guard).
+_MODEL_REQUIREMENTS: dict[str, object] = {
+    "Prophet (recommended)": Prophet,
+    "AutoETS": AutoETS,
+    "Holt-Winters": ETSModel,
+    "SARIMA": SARIMAX,
+    "ARIMA": SARIMAX,
+}
+
 
 def forecast_model_options() -> list[str]:
-    """UI labels for the forecast model selector.
+    """UI labels for the forecast model selector, hiding models whose library is missing."""
 
-    Prophet is dropped when the package is unavailable so its label never silently
-    serves the linear fallback inside forecast_list_size.
-    """
-
-    options = list(FORECAST_MODELS)
-    if Prophet is None:
-        options.remove("Prophet (recommended)")
-    return options
+    return [
+        label
+        for label in FORECAST_MODELS
+        if _MODEL_REQUIREMENTS.get(label, True) is not None
+    ]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"

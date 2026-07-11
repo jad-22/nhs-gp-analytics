@@ -351,3 +351,48 @@ Implementation Notes
 - `science/backtesting.py` (`calibrated_forecast`), `dashboard/data.py`
   (`FORECAST_MODELS`, `forecast_model_options`, `practice_history_with_forecast`),
   `dashboard/pages/1_List_Size_Trends.py`; tests in `tests/test_backtesting.py`.
+
+---
+
+### DEC-010: Classical Statistical Forecasters Join the Registry
+
+- Date: 2026-07-11
+- Status: Accepted
+- Scope: Data Science / Dashboard
+
+Context
+- `docs/FORECAST_VALIDATION.md` §2 named ETS, ARIMA/SARIMA, and AutoETS as Prophet's
+  stiffest competition on smooth monthly administrative data, but none were
+  implemented — the DEC-004 verdict rested on Prophet vs the harness baselines only.
+
+Decision
+- `science/stat_forecasting.py` implements four classical models behind the existing
+  `Forecaster` contract: Holt-Winters (statsmodels state-space `ETSModel`, additive,
+  12-month season), ARIMA(1,1,1) with drift, the airline SARIMA (0,1,1)(0,1,1)12,
+  and statsforecast's `AutoETS` (AICc-selected ETS variant).
+- All follow the Prophet guards: linear fallback below 24 months of history or on a
+  failed fit, and excluded from `default_forecasters()` / the dashboard selector
+  when their library is not installed, so a fallback is never scored or served
+  under a real model's name.
+- The dashboard drill-down offers all four alongside Prophet and the baselines; the
+  DEC-007 calibration wraps whichever model the user picks.
+
+Rationale (measured, rolling-origin backtest on real data)
+- National (78 months): Holt-Winters MASE 0.211 ties Prophet 0.213, with far better
+  native coverage (0.65 vs 0.35 at nominal 0.80); ARIMA 0.227, AutoETS 0.250.
+- Regional medians: Holt-Winters 0.183, ARIMA 0.195, AutoETS 0.197, Prophet 0.198;
+  Prophet and Holt-Winters win three regions each, ARIMA one.
+- The airline SARIMA loses badly (regional median 1.289 — behind seasonal naive):
+  its seasonal differencing amplifies the 2023 NHAIS→PDS structural break.
+
+Impact
+- The DEC-004 verdict is now measured against its full candidate table. Prophet stays
+  the recommended default for the moment (changepoint support, established docs),
+  but Holt-Winters ties or edges it — whether the DEC-004 "simplest model within
+  noise" rule should hand it the recommendation is an open product decision.
+
+Implementation Notes
+- `science/stat_forecasting.py`; registry hooks in `science/backtesting.py`
+  (`default_forecasters`) and `dashboard/data.py` (`FORECAST_MODELS`,
+  `_MODEL_REQUIREMENTS`); `requirements.txt` gains statsmodels + statsforecast;
+  tests in `tests/test_stat_forecasting.py`.
