@@ -8,6 +8,8 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Iterable
 
+import requests
+
 from .config import (
     DATA_RAW_DIR,
     DEFAULT_BACKFILL_START,
@@ -150,7 +152,19 @@ def run_target(target: MonthTarget, dry_run: bool = False, keep_raw: bool = Fals
         )
     except PageNotFoundError as exc:
         return RunResult(month=target.month, year=target.year, status="not_published", error=str(exc))
-    except (LinksNotFoundError, DownloadError, TransformError, RuntimeError, ValueError) as exc:
+    except (
+        LinksNotFoundError,
+        DownloadError,
+        TransformError,
+        RuntimeError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
+        # requests.RequestException covers fetch_html exhausting its retries
+        # (transient 403/429/5xx from NHS Digital's edge, or a connection
+        # error) — without this, that failure mode bypasses RunResult
+        # entirely and crashes main() before pipeline_log.json is ever
+        # written, losing the run record for the one case most worth logging.
         return RunResult(month=target.month, year=target.year, status="failed", error=str(exc))
 
 
