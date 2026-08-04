@@ -38,13 +38,15 @@ from science.stat_forecasting import (
     sarima_forecast,
 )
 
-# Drill-down forecast models (DEC-009/DEC-010). Prophet is the DEC-004 backtest
-# winner and the default; the classical statistical models and the harness baselines
-# are offered for comparison. Keys are UI labels.
+# Drill-down forecast models (DEC-009/DEC-010/DEC-011). AutoETS is the default: it
+# wins the practice-level backtest, which is the level this drill-down serves
+# (docs/FORECAST_VALIDATION.md §7). Prophet, the former default, ranks 5th here and
+# loses to the naive baseline on individual practices. The other statistical models
+# and the harness baselines are offered for comparison. Keys are UI labels.
 FORECAST_MODELS: dict[str, Forecaster] = {
-    "Prophet (recommended)": forecast_list_size,
-    "AutoETS": autoets_forecast,
+    "AutoETS (recommended)": autoets_forecast,
     "Holt-Winters": holt_winters_forecast,
+    "Prophet": forecast_list_size,
     "SARIMA": sarima_forecast,
     "ARIMA": arima_forecast,
     "Linear trend": linear_forecast,
@@ -52,12 +54,16 @@ FORECAST_MODELS: dict[str, Forecaster] = {
     "Naive (last value)": naive_forecast,
 }
 
+# Selected when the caller does not name a model. Kept as a constant so the default
+# lives in one place rather than being implied by dict ordering.
+DEFAULT_FORECAST_MODEL = "AutoETS (recommended)"
+
 # The library symbol each optional model needs; None means not installed and the
 # label is hidden so it never silently serves the linear fallback (DEC-009 guard).
 _MODEL_REQUIREMENTS: dict[str, object] = {
-    "Prophet (recommended)": Prophet,
-    "AutoETS": AutoETS,
+    "AutoETS (recommended)": AutoETS,
     "Holt-Winters": ETSModel,
+    "Prophet": Prophet,
     "SARIMA": SARIMAX,
     "ARIMA": SARIMAX,
 }
@@ -71,6 +77,20 @@ def forecast_model_options() -> list[str]:
         for label in FORECAST_MODELS
         if _MODEL_REQUIREMENTS.get(label, True) is not None
     ]
+
+
+def default_forecast_model() -> str:
+    """The model used when no model is named.
+
+    Falls back to the first available option when statsforecast is missing, so the
+    default never resolves to a model whose library is absent — that would serve the
+    linear fallback under a real model's name (the DEC-009 guard).
+    """
+
+    options = forecast_model_options()
+    if DEFAULT_FORECAST_MODEL in options:
+        return DEFAULT_FORECAST_MODEL
+    return options[0] if options else DEFAULT_FORECAST_MODEL
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
@@ -324,7 +344,7 @@ def code_from_option(option: str) -> str | None:
 def practice_history_with_forecast(
     practice_code: str,
     periods: int = 12,
-    model: str = "Prophet (recommended)",
+    model: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
     """Return one practice history, its forecast, and whether the band is calibrated.
 
@@ -342,7 +362,8 @@ def practice_history_with_forecast(
     if history.empty:
         return history, _empty(), False
 
-    forecaster = FORECAST_MODELS.get(model, forecast_list_size)
+    resolved = model or default_forecast_model()
+    forecaster = FORECAST_MODELS.get(resolved, autoets_forecast)
     forecast, calibrated = calibrated_forecast(history, forecaster, periods=periods)
     return history, forecast, calibrated
 
@@ -366,8 +387,10 @@ def format_pct(value: object) -> str:
 
 
 __all__ = [
+    "DEFAULT_FORECAST_MODEL",
     "FORECAST_MODELS",
     "PageFilters",
+    "default_forecast_model",
     "forecast_model_options",
     "aggregate_list_size",
     "aggregate_market_share",

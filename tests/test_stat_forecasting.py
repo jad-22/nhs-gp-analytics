@@ -154,10 +154,42 @@ def test_dashboard_options_hide_missing_libraries() -> None:
 
     options = forecast_model_options()
     assert set(options).issubset(FORECAST_MODELS)
-    statistical_labels = {"AutoETS", "Holt-Winters", "SARIMA", "ARIMA"}
+    statistical_labels = {"AutoETS (recommended)", "Holt-Winters", "SARIMA", "ARIMA"}
     if HAS_STATSMODELS:
         assert {"Holt-Winters", "SARIMA", "ARIMA"}.issubset(options)
     if HAS_STATSFORECAST:
-        assert "AutoETS" in options
+        assert "AutoETS (recommended)" in options
     if not HAS_STATSMODELS and not HAS_STATSFORECAST:
         assert not statistical_labels & set(options)
+
+
+def test_autoets_is_the_practice_drilldown_default() -> None:
+    """DEC-011: AutoETS wins the practice-level backtest, so it is the drill-down default."""
+
+    from dashboard.data import (
+        DEFAULT_FORECAST_MODEL,
+        FORECAST_MODELS,
+        default_forecast_model,
+        forecast_model_options,
+    )
+    from science.stat_forecasting import autoets_forecast
+
+    assert DEFAULT_FORECAST_MODEL == "AutoETS (recommended)"
+    assert FORECAST_MODELS[DEFAULT_FORECAST_MODEL] is autoets_forecast
+    # The selector has no explicit index, so the first option is what users land on.
+    assert forecast_model_options()[0] == DEFAULT_FORECAST_MODEL if HAS_STATSFORECAST else True
+
+    if HAS_STATSFORECAST:
+        assert default_forecast_model() == DEFAULT_FORECAST_MODEL
+
+
+def test_default_forecast_model_falls_back_when_library_missing(monkeypatch) -> None:
+    """Never default to a model whose library is absent — that serves a silent linear fallback."""
+
+    import dashboard.data as data
+
+    monkeypatch.setitem(data._MODEL_REQUIREMENTS, data.DEFAULT_FORECAST_MODEL, None)
+    resolved = data.default_forecast_model()
+
+    assert resolved != data.DEFAULT_FORECAST_MODEL
+    assert resolved in data.forecast_model_options()

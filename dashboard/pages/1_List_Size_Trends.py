@@ -76,10 +76,12 @@ st.markdown("<h2>Practice drill-down</h2>", unsafe_allow_html=True)
 st.markdown(
     f"""<p style="color:{MUTED}; max-width:72ch;">
         Search by practice name or ODS code. Forecasts are computed on demand and cached
-        per practice and model. Prophet won the DEC-004 backtest and is the default;
-        the classical statistical models (AutoETS, Holt-Winters, SARIMA, ARIMA) and the
-        harness baselines are available for comparison. Where the history is long
-        enough, the 80% band is calibrated from the practice's own backtest errors.
+        per practice and model. AutoETS is the default: it won the practice-level
+        backtest across 999 practices (DEC-011), which is the level this drill-down
+        serves. Prophet, Holt-Winters, SARIMA, ARIMA and the harness baselines are
+        available for comparison. Where the history is long enough, the 80% band is
+        calibrated from the practice's own backtest errors — which delivers about 74%
+        coverage out of sample, not the nominal 80%.
     </p>""",
     unsafe_allow_html=True,
 )
@@ -100,7 +102,7 @@ if code:
     model = st.selectbox(
         "Forecast model",
         options=forecast_model_options(),
-        help="Prophet ranked best in rolling-origin backtesting (see docs/FORECAST_VALIDATION.md); the statistical models and baselines are the candidates it was measured against.",
+        help="AutoETS ranked best at practice level in rolling-origin backtesting (median MASE 0.525 across 999 practices; see docs/FORECAST_VALIDATION.md §7). Holt-Winters wins on aggregated series, and Prophet ranks 5th here — the ranking depends on aggregation level.",
     )
     history, forecast, calibrated = practice_history_with_forecast(code, model=model)
     st.plotly_chart(practice_forecast_chart(history, forecast, f"{code} list size forecast - {model}"), use_container_width=True)
