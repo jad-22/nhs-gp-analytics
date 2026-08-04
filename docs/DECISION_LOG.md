@@ -472,3 +472,90 @@ Implementation Notes
   `docs/FORECAST_VALIDATION.md` §7.
 - No change to `science/` — `rolling_origin_backtest`, `score_backtest`,
   `calibrate_intervals` and `apply_interval_calibration` were used as-is.
+
+### DEC-012: Serve Forecasts from a Precomputed Artifact, Not On Demand
+
+- Date: 2026-08-04
+- Status: Accepted
+- Scope: Data Science / API
+- Related: DEC-007 (interval calibration), DEC-009 (silent-fallback guard), DEC-011
+  (per-level model choice)
+
+Context
+- The repo had no forecast artifact of any kind. Forecasts existed only inside a running
+  Streamlit process, memoised in memory: no Parquet, no metrics, no model metadata, no
+  run timestamp. Nothing outside the dashboard could reach them.
+- A public API cannot fit models per request. `calibrated_forecast()` runs a six-cutoff
+  rolling-origin backtest and then fits again — seven fits, measured at 0.94s per series
+  for AutoETS. On an unauthenticated endpoint that is a denial-of-service vector: an
+  attacker simply requests 6,145 distinct ODS codes.
+
+Decision
+- **Precompute every served series into two committed Parquet files** —
+  `data/processed/forecasts.parquet` (12 rows per entity) and
+  `forecast_metrics.parquet` (1 row per entity) — built by
+  `scripts/build_forecast_cache.py` and refreshed monthly in CI as a job separate from
+  the data pipeline.
+- **Compile those into `serving.duckdb` at Docker build time**
+  (`scripts/build_serving_db.py`). Parquet stays the source of truth because git can
+  diff it; the DuckDB file is a build artifact and is git-ignored.
+- **The serving image contains no forecasting library.** Not statsforecast, not
+  statsmodels, not Prophet. It cannot fit a model even by accident.
+- **Aggregate membership is fixed at each practice's latest known assignment** and
+  applied to its whole history.
+
+Rationale
+- Cost is not the obstacle: the full 7,488-series build takes about 15 minutes on six
+  workers, well inside the CI budget. A hybrid cache-on-call design was considered and
+  rejected — it would add ~800 MB of forecasting libraries to the image, require a
+  writable volume, make results depend on when a code was first requested, and leave the
+  1–3s uncached path exposed.
+- A separate SQL server buys nothing: the workload is read-only, single-node, refreshed
+  monthly, and the whole dataset fits in page cache. But a native DuckDB file with
+  indexes still beats querying Parquet directly — measured 1.0 ms versus 6.0 ms for a
+  point lookup, and the 14.8 ms practice-to-geography join disappears entirely.
+- Fixed membership is the only definition available at ICB level (`ICB_CODE` exists only
+  from 2022-07) and is what the DEC-011 ICB backtests already used. It also keeps April
+  restructures out of the series as step changes no model could forecast. The cost is
+  visible: region median MASE is 0.202 under fixed membership versus 0.183 under
+  per-month membership.
+- `ICB_CODE` starting in 2022-07 while `CCG_CODE` ends in 2022-06 leaves no overlapping
+  month to join on. Practices present in both months provide a crosswalk; without it the
+  352 practices that closed before the handover carry no ICB, and every ICB series gains
+  a spurious ~2.9% growth trend at its start.
+
+Three guards, each closing a failure that would otherwise be invisible
+1. **A missing library is a hard error.** Every forecaster silently falls back to a
+   linear trend when its library is absent, so a lean CI environment would publish
+   straight lines labelled `autoets`. The build refuses to start.
+2. **Aggregates are summed, never averaged.** `science.forecasting._prepare_series`
+   collapses duplicate months with `groupby("ds").mean()`, so passing it a multi-practice
+   frame yields a mean per practice — an order-of-magnitude error that still looks like a
+   plausible number.
+3. **The recorded model is the one that ran.** Output is compared bit-for-bit against
+   `_linear_forecast`; a series that fell back is recorded as `linear`, never as the
+   model that was requested.
+
+Plus a quarantine: any series whose backtest MASE exceeds 50 is recorded in the metrics
+file but **excluded from the forecast file**, and the API returns 404 with
+`forecast_withheld`. These are genuine data breaks (mergers, code reassignments), not
+model failures, but they must not be served as confident forecasts.
+
+A fourth guard, added after the first full build published the wrong number
+- `score_backtest` reports coverage of the model's **native** band, but the API serves
+  the DEC-007 *calibrated* band. The first build therefore advertised a coverage figure
+  describing an interval nobody receives (median 0.68 native). Calibrating on every
+  cutoff and scoring those same cutoffs would be no better — it is in-sample, and
+  FORECAST_VALIDATION §5's 0.83 is exactly that flattery.
+- The metrics file now carries **`COVERAGE`** — calibrate on all cutoffs but the last,
+  score the last — alongside `COVERAGE_NATIVE` for comparison. It is pure arithmetic on
+  the backtest already computed, so it costs nothing, and it is what `/v1/meta`
+  publishes as `measured_coverage`.
+
+Impact
+- Every API response is a lookup, single-digit milliseconds, fully deterministic and
+  reproducible from the committed artifacts.
+- Repo growth is a few MB per month, consistent with the existing commit-Parquet
+  approach.
+- The API publishes **measured** out-of-sample interval coverage at `/v1/meta` rather
+  than the nominal 80%, per DEC-011 §7.5.

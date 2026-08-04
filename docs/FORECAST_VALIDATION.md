@@ -317,8 +317,15 @@ default anywhere. See DEC-011.
 - Forecaster under test: `science/forecasting.py` (`forecast_list_size`)
 - Dashboard default: `dashboard/data.py` (`DEFAULT_FORECAST_MODEL`,
   `default_forecast_model`)
-- Decision records: `docs/DECISION_LOG.md` DEC-004, DEC-007, DEC-009, DEC-010, DEC-011
+- Decision records: `docs/DECISION_LOG.md` DEC-004, DEC-007, DEC-009, DEC-010, DEC-011,
+  DEC-012
 - Spec context: `docs/PROJECT_SPEC.md` §6.1
+- **Production application of §7:** `scripts/build_forecast_cache.py` runs this exact
+  protocol over all 7,488 served series each month and writes the scores alongside the
+  forecasts (`data/processed/forecast_metrics.parquet`), so §7's sampled medians can be
+  checked against the full population — the latest build reproduces national 0.211,
+  ICB 0.268 and practice 0.528. The API publishes them at `/v1/meta/models`
+  (`docs/API.md`).
 
 ### Reproducing §7
 

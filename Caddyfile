@@ -1,0 +1,24 @@
+# Automatic Let's Encrypt TLS, compression, and a reverse proxy to the API.
+# Set API_DOMAIN in .env; leave it as localhost for a local `docker compose up`.
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy api:8000 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	# The app sets Cache-Control per response; this only fills in the security headers
+	# that a public JSON API should carry regardless.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

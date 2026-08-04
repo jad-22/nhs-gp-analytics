@@ -1,0 +1,14 @@
+# Serving dependencies for the public read-only API (api/).
+#
+# Deliberately excludes every forecasting library: forecasts are precomputed by
+# scripts/build_forecast_cache.py and shipped as Parquet, so the serving image never
+# imports prophet, statsmodels or statsforecast and never fits a model in a request.
+# Keeping this list separate from requirements.txt is what keeps that image small.
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+slowapi==0.1.9
+# 1.5.x understands the string dtype pandas 3.0 made the default; older DuckDB raises
+# "Data type 'str' not recognized" when the serving database is compiled.
+duckdb==1.5.4
+pydantic==2.10.4
