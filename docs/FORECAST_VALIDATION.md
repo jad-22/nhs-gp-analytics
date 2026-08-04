@@ -1,11 +1,16 @@
 # Forecast Validation and Model Selection
 
-This document records the reasoning behind the project's forecasting model choice
-(Prophet), the candidate alternatives worth benchmarking, and the methodology used to
-validate forecast accuracy and select the best model. The methodology is implemented in
+This document records the reasoning behind the project's forecasting model choice, the
+candidate alternatives worth benchmarking, and the methodology used to validate
+forecast accuracy and select the best model. The methodology is implemented in
 `science/backtesting.py`.
 
-## 1. Current Approach: Prophet
+> **Current defaults (DEC-011, §7): AutoETS for practice and PCN series, Holt-Winters
+> for ICB / regional / national series.** Prophet was the original choice and is still
+> available for comparison, but it is no longer the default anywhere. Sections 1–6 are
+> kept as the historical record of how that conclusion was reached — read §7 first.
+
+## 1. Original Approach: Prophet
 
 `science/forecasting.py` forecasts monthly registered-patient list sizes with
 [Prophet](https://facebook.github.io/prophet/), a decomposable additive model:
@@ -154,6 +159,9 @@ Takeaways:
    honest native band. Under the §4 "simplest model within noise" rule it is now a
    live candidate for the recommended default — an open product decision; Prophet
    keeps the recommendation for the moment on changepoint support.
+   **→ Superseded by §7.** These results are correct but cover only 8 aggregate
+   series; §7 shows the ranking reverses on the 99.4% of series that are practices
+   and PCNs, and retires Prophet as the default.
 2. **ARIMA-with-drift runs close everywhere despite ignoring seasonality** — these
    series are dominated by trend and autocorrelation, not seasonal structure.
 3. **The airline SARIMA fails hard** (worse than seasonal naive in several regions):
@@ -161,10 +169,170 @@ Takeaways:
    absorbing it. A reminder that classical defaults are not robust to known breaks —
    exactly the situation Prophet's explicit changepoints were chosen for.
 
-## 7. Related
+## 7. Practice- and PCN-level results, measured (DEC-011)
+
+§6 is a sound experiment with a narrow sample: it scores **8 series** — one national
+plus seven regions. Both the dashboard drill-down and the planned open API serve
+*individual practices*, and no practice had ever been backtested. This section closes
+that gap and reverses the §6 conclusion for the levels that carry almost all the data.
+
+### 7.1 Methodology
+
+Same harness, same parameters, no code changes: `rolling_origin_backtest` with
+`horizon=12, initial=36, step=6` on the July 2026 vintage (78 months, 2020-01 →
+2026-06), MASE as the primary metric.
+
+- **Environment.** Prophet is not installed in the working Anaconda environment, and
+  `forecast_list_size` silently returns the linear fallback when it is missing. The
+  study therefore ran in an isolated virtualenv with Prophet 1.3.0, statsmodels 0.14.6,
+  statsforecast 2.0.3. **Any benchmark of Prophet run without confirming
+  `science.forecasting.Prophet is not None` is measuring the linear fallback.**
+- **Control.** The harness first reproduced §6 exactly — national Holt-Winters MASE
+  0.211 / Prophet 0.213, MAE 152,339 / 152,904; regional medians 0.183 / 0.195 / 0.197
+  / 0.198. Same instrument, so §6 and §7 numbers are directly comparable.
+- **Sampling.** All 7 regions, all 36 ICBs, 120 PCNs sampled at random from 1,299, and
+  999 practices drawn **stratified across size deciles** (so the ~4k-patient practices
+  are not swamped by the ~18k ones). Only practices present in the latest snapshot.
+- **Aggregate series are summed, not averaged.** `_prepare_series` ends with
+  `groupby("ds").mean()`, so passing a multi-practice frame yields a mean per practice.
+  Every aggregate here is built with an explicit `.sum()` first.
+- **Paired testing.** Models are compared per series (Wilcoxon signed-rank on matched
+  MASE), not by comparing group medians, since series difficulty varies enormously.
+- **Honest interval scoring.** Coverage is reported two ways: *self-calibrated* (widths
+  fitted and scored on the same backtest — what §5 reports) and *held-out* (widths
+  fitted on all cutoffs but the last, scored on the last). Only the second is
+  out-of-sample.
+- **Fallback detection.** Each model's final fit is compared against `_linear_forecast`
+  output; a bit-identical result is recorded as a silent fallback. Measured rate ≈ 0.1%
+  (1 practice in 1,000), so the guard matters for correctness, not volume.
+
+### 7.2 Median MASE by aggregation level
+
+| Model | national (1) | region (7) | ICB (36) | PCN (120) | practice (999) |
+|---|---|---|---|---|---|
+| Holt-Winters | **0.211** | **0.183** | **0.272** | 0.536 | 0.594 |
+| AutoETS | 0.250 | 0.197 | 0.295 | **0.389** | **0.525** |
+| ARIMA(1,1,1)+drift | 0.227 | 0.195 | 0.296 | 0.478 | 0.552 |
+| Prophet | 0.213 | 0.198 | 0.366 | 0.629 | 0.723 |
+| Naive | 0.409 | 0.396 | 0.398 | 0.518 | 0.630 |
+| Linear | 0.357 | 0.274 | 0.491 | 0.942 | 1.089 |
+| Seasonal naive | 0.889 | 0.873 | 0.858 | 0.918 | 1.085 |
+
+**The ranking flips between ICB and PCN.** Holt-Winters wins national, region and ICB;
+AutoETS wins PCN and practice. At PCN level Holt-Winters falls to 4th, behind the naive
+baseline. Median series size: ICB ≈ 1.2M patients, PCN ≈ 43k, practice ≈ 8.8k — the
+crossover sits in that gap. Heavily aggregated series are smooth enough for
+Holt-Winters' damped seasonal trend; noisier small series reward AutoETS' AICc search
+over ETS variants.
+
+This matters because **PCNs and practices are 7,444 of 7,488 forecastable series
+(99.4%)**. The eight series §6 measured are the only ones where its conclusion holds.
+
+### 7.3 Prophet fails the §4 protocol at the levels that matter
+
+- It **loses to the plain naive last-value baseline** at practice (0.723 vs 0.630) and
+  PCN (0.629 vs 0.518) level. §4 step 3 eliminates candidates that cannot beat the
+  baselines.
+- Paired across 999 practices: Holt-Winters beats Prophet on **72.7%** (median −16.6%,
+  Wilcoxon p ≈ 1e-57); AutoETS beats it on **80.5%** (median −25.6%). At PCN level
+  AutoETS beats Prophet on **89.2%** (median −30.2%).
+- **Tail risk:** Prophet exceeds MASE 1 on **33.8%** of practices, versus AutoETS 17.0%
+  and Holt-Winters 20.5%.
+- **Short horizons are its weakest point:** median MASE at 1 month ahead is 0.273 versus
+  0.113 (AutoETS) and 0.130 (Holt-Winters) — Prophet's smooth trend does not anchor to
+  the last observation.
+
+### 7.4 Changepoint support does not pay off
+
+§1 justifies Prophet on explicit changepoints at the NHAIS→PDS transition. The default
+cutoff grid puts a cutoff at **2022-12**, whose 12-month forecast runs straight through
+the break. Scoring each cutoff separately (median MASE):
+
+| Level | cutoff 2022-12 (break) | median of the 5 calm cutoffs |
+|---|---|---|
+| National | HW **0.096** · ARIMA 0.104 · Prophet 0.152 | HW 0.257 · ARIMA 0.179 · Prophet 0.231 |
+| Region | HW **0.080** · ARIMA 0.102 · Prophet 0.163 | HW 0.183 · ARIMA 0.152 · Prophet 0.225 |
+| Practice | ARIMA **0.487** · HW 0.533 · Prophet 0.655 | ARIMA 0.448 · HW 0.436 · Prophet 0.566 |
+
+Prophet is the **worst of the three at the break cutoff at every level** — the exact
+scenario the feature was chosen for. There is a mechanical reason:
+`_default_changepoints` only injects `PDS_START` when it falls inside the *training*
+range, so at the 2022-12 cutoff Prophet gets no PDS changepoint at all. Changepoints
+can only help retrospectively, never for forecasting *through* a break that has not
+happened yet. At later cutoffs where the changepoint is in range, Prophet still loses.
+
+### 7.5 Interval calibration is honest but weaker than advertised
+
+Held-out-cutoff coverage at a nominal 0.80: Holt-Winters 0.743, Prophet 0.746, AutoETS
+0.712, ARIMA 0.720 — statistically indistinguishable. Two consequences:
+
+1. **Calibration fully repairs Prophet's native band** (0.33 → 0.75), so "Holt-Winters
+   has a more honest band" is only an argument for the handful of series too short to
+   calibrate.
+2. **The calibrated 80% band delivers ≈74% out of sample.** §5's 0.83 figure is
+   *self*-calibrated and therefore optimistic. Anything published to users — dashboard
+   caption or API response — should quote the measured out-of-sample figure.
+
+### 7.6 Rejected alternatives
+
+- **ARIMA**, despite ranking 2nd at practice level, is **excluded**: it diverges on 15
+  of 999 practices, with a maximum MASE of **2.3 × 10¹⁰**. Any automated pipeline
+  serving it needs a sanity bound; not worth the exposure for a ~4% median gain over
+  AutoETS.
+- **Per-series model selection.** Tested honestly — pick the best model on all cutoffs
+  but the last, score it on the held-out cutoff (300 practices). Median MASE 0.429
+  versus fixed AutoETS 0.432: a **0.6% gain**, beating fixed AutoETS on only **37%** of
+  practices, at **6.8× the compute** (every candidate must be fitted). Selection noise
+  over 6 cutoffs eats the benefit.
+- **Pooled interval calibration** (fit one relative width curve on a sample, reuse it):
+  relative half-width varies **5–7×** between the 10th and 90th percentile of practices
+  at every horizon. A shared curve would be badly overconfident for volatile practices.
+  Per-series calibration stays.
+
+### 7.7 Cost
+
+Seconds per series for a 6-cutoff backtest plus the final fit (12 cores, Prophet 1.3.0):
+
+| Model | s/series | 7,488 series, 1 core | on 4 cores |
+|---|---|---|---|
+| ARIMA | 0.60 | 1.24 h | 19 min |
+| **AutoETS** | **0.94** | 1.95 h | 29 min |
+| Holt-Winters | 2.35 | 4.88 h | 73 min |
+| Prophet | 3.58 | 7.44 h | 112 min |
+
+Holt-Winters is only ~1.5× faster than Prophet, not the order of magnitude a single
+fit suggests (0.05s vs 0.98s) — the backtest dominates. **Cost is not the reason to
+retire Prophet; practice-level accuracy is.**
+
+### 7.8 Conclusion
+
+Use **AutoETS for practice and PCN series, Holt-Winters for ICB, regional and national
+series.** Prophet is retained in the registry for comparison but is no longer the
+default anywhere. See DEC-011.
+
+## 8. Related
 
 - Implementation: `science/backtesting.py` and `science/stat_forecasting.py`,
   tests in `tests/test_backtesting.py` and `tests/test_stat_forecasting.py`
 - Forecaster under test: `science/forecasting.py` (`forecast_list_size`)
-- Decision records: `docs/DECISION_LOG.md` DEC-004, DEC-007, DEC-009, DEC-010
+- Dashboard default: `dashboard/data.py` (`DEFAULT_FORECAST_MODEL`,
+  `default_forecast_model`)
+- Decision records: `docs/DECISION_LOG.md` DEC-004, DEC-007, DEC-009, DEC-010, DEC-011
 - Spec context: `docs/PROJECT_SPEC.md` §6.1
+
+### Reproducing §7
+
+The study is not committed (it needs Prophet, which the pipeline does not). To rerun:
+
+```powershell
+python -m venv .venv-forecast
+.\.venv-forecast\Scripts\Activate.ps1
+pip install prophet statsmodels statsforecast pandas pyarrow scikit-learn scipy
+python -c "from science.forecasting import Prophet; assert Prophet is not None"
+```
+
+Then, per level, for each candidate forecaster: build the series (summing for
+aggregates), call `rolling_origin_backtest(series, forecaster, horizon=12, initial=36,
+step=6)`, and score with `score_backtest` / `score_by_horizon`. Group backtest rows by
+`cutoff` to reproduce §7.4, and split the last cutoff off before `calibrate_intervals`
+to reproduce the held-out coverage in §7.5.

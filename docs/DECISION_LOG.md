@@ -396,3 +396,79 @@ Implementation Notes
   (`default_forecasters`) and `dashboard/data.py` (`FORECAST_MODELS`,
   `_MODEL_REQUIREMENTS`); `requirements.txt` gains statsmodels + statsforecast;
   tests in `tests/test_stat_forecasting.py`.
+
+---
+
+### DEC-011: AutoETS Becomes the Practice-Level Default; Prophet Retired as Default
+
+- Date: 2026-08-04
+- Status: Accepted
+- Scope: Data Science / Dashboard
+- Supersedes: the open question left by DEC-010 ("Prophet stays the recommended
+  default for the moment")
+
+Context
+- DEC-004 and DEC-010 both selected models using the backtest evidence available at
+  the time: **one national series and seven regional series**. The dashboard
+  drill-down and the planned open API both serve *individual practices*, and no
+  practice had ever been backtested. The verdict was being generalised from 8
+  aggregate series to 6,145 practices.
+- Prophet is also absent from the working Anaconda environment, and
+  `forecast_list_size` silently returns the linear fallback when it is missing — so
+  any local "Prophet" timing or accuracy figure taken there was measuring a trend line.
+
+Decision
+- **AutoETS is the default forecaster for practice-level and PCN-level series.**
+  Holt-Winters remains the choice for ICB, regional and national series.
+- **Prophet is no longer the default anywhere.** It stays in `FORECAST_MODELS` and
+  `default_forecasters()` for comparison.
+- The dashboard drill-down selector now lists `AutoETS (recommended)` first;
+  `dashboard/data.py` gains `DEFAULT_FORECAST_MODEL` and `default_forecast_model()`
+  so the default is stated once rather than implied by dict ordering, and degrades to
+  an available model when statsforecast is missing (preserving the DEC-009 guard).
+
+Rationale (measured; full methodology in `docs/FORECAST_VALIDATION.md` §7)
+- Run in an isolated venv with Prophet 1.3.0 installed and verified; the harness first
+  reproduced DEC-010's §6 numbers exactly, then extended to 999 size-stratified
+  practices, 120 PCNs and all 36 ICBs.
+- **The ranking reverses with aggregation level.** Median MASE — practice: AutoETS
+  0.525, ARIMA 0.552, Holt-Winters 0.594, Prophet 0.723. PCN: AutoETS 0.389, ARIMA
+  0.478, naive 0.518, Holt-Winters 0.536, Prophet 0.629. Holt-Winters still wins ICB
+  (0.272), region (0.183) and national (0.211). **Practices and PCNs are 99.4% of all
+  forecastable series.**
+- **Prophet fails the §4 protocol**: it loses to the plain naive baseline at both
+  practice (0.723 vs 0.630) and PCN (0.629 vs 0.518) level. Paired, AutoETS beats it on
+  80.5% of practices (median −25.6%) and 89.2% of PCNs (median −30.2%), Wilcoxon
+  p ≈ 1e-57. It exceeds MASE 1 on 33.8% of practices vs AutoETS 17.0%.
+- **Prophet's stated justification does not hold.** At the 2022-12 cutoff — the one
+  forecasting through the NHAIS→PDS break — Prophet is the worst of the three tested
+  models at every level. `_default_changepoints` only injects `PDS_START` when it lies
+  inside the *training* range, so at that cutoff Prophet has no PDS changepoint at all;
+  changepoints help retrospectively, not for forecasting through a coming break.
+- **Cost is not the driver.** Per series (6-cutoff backtest + fit): AutoETS 0.94s,
+  Holt-Winters 2.35s, Prophet 3.58s. Prophet is only ~1.5× slower than Holt-Winters.
+  AutoETS is both the most accurate at practice level and the cheapest of the three.
+- **ARIMA is excluded despite ranking 2nd**: it diverges on 15 of 999 practices, max
+  MASE 2.3 × 10¹⁰.
+- **Per-series model selection was tested and rejected**: 0.6% median gain, winning on
+  only 37% of practices, at 6.8× the compute.
+
+Impact
+- Practice forecasts shown in the dashboard change. They are more accurate on ~73–80%
+  of practices, but any figure previously screenshotted or quoted from the drill-down
+  will differ.
+- Interval semantics are unchanged (DEC-007 calibration still wraps whichever model is
+  selected), but §7.5 establishes that the calibrated 80% band delivers **≈74%**
+  coverage out of sample; §5's 0.83 is self-calibrated and optimistic. Dashboard copy
+  now says so.
+- The planned open API precomputes AutoETS for practices/PCNs and Holt-Winters for
+  aggregates, and records `MODEL` per row so consumers never have to infer it.
+
+Implementation Notes
+- `dashboard/data.py` (`FORECAST_MODELS` ordering and labels, `DEFAULT_FORECAST_MODEL`,
+  `default_forecast_model`, `_MODEL_REQUIREMENTS`, `practice_history_with_forecast`);
+  `dashboard/pages/1_List_Size_Trends.py` (selector help text and drill-down copy);
+  tests in `tests/test_stat_forecasting.py`; methodology and full results in
+  `docs/FORECAST_VALIDATION.md` §7.
+- No change to `science/` — `rolling_origin_backtest`, `score_backtest`,
+  `calibrate_intervals` and `apply_interval_calibration` were used as-is.
