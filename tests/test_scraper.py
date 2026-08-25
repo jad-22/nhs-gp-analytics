@@ -1,3 +1,4 @@
+import pytest
 from requests import HTTPError
 
 from pipeline.scraper import (
@@ -87,10 +88,7 @@ def test_fetch_html_retries_forbidden_with_default_user_agent() -> None:
 
 def test_fetch_html_raises_for_persistent_forbidden() -> None:
     session = _FakeSession(responses=[_FakeResponse(status_code=403), _FakeResponse(status_code=403)])
-    try:
+    with pytest.raises(HTTPError):
         fetch_html(session, "https://example.com")
-        assert False, "Expected HTTPError for persistent 403"
-    except HTTPError:
-        pass
     assert session.calls == ["custom-agent/1.0", DEFAULT_USER_AGENT]
     assert session.headers["User-Agent"] == "custom-agent/1.0"
