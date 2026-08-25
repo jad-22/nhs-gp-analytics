@@ -61,15 +61,15 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    def __init__(self) -> None:
+    def __init__(self, responses: list[_FakeResponse] | None = None) -> None:
         self.headers = {"User-Agent": "custom-agent/1.0"}
         self.calls: list[str] = []
+        self._responses = responses or [_FakeResponse(status_code=403), _FakeResponse(status_code=200, text="<html>ok</html>")]
 
     def get(self, _url: str, timeout: int = 30) -> _FakeResponse:  # noqa: ARG002
         self.calls.append(self.headers.get("User-Agent", ""))
-        if len(self.calls) == 1:
-            return _FakeResponse(status_code=403)
-        return _FakeResponse(status_code=200, text="<html>ok</html>")
+        index = min(len(self.calls) - 1, len(self._responses) - 1)
+        return self._responses[index]
 
 
 def test_make_session_uses_browser_user_agent_by_default() -> None:
@@ -81,5 +81,16 @@ def test_fetch_html_retries_forbidden_with_default_user_agent() -> None:
     session = _FakeSession()
     html = fetch_html(session, "https://example.com")
     assert html == "<html>ok</html>"
+    assert session.calls == ["custom-agent/1.0", DEFAULT_USER_AGENT]
+    assert session.headers["User-Agent"] == "custom-agent/1.0"
+
+
+def test_fetch_html_raises_for_persistent_forbidden() -> None:
+    session = _FakeSession(responses=[_FakeResponse(status_code=403), _FakeResponse(status_code=403)])
+    try:
+        fetch_html(session, "https://example.com")
+        assert False, "Expected HTTPError for persistent 403"
+    except HTTPError:
+        pass
     assert session.calls == ["custom-agent/1.0", DEFAULT_USER_AGENT]
     assert session.headers["User-Agent"] == "custom-agent/1.0"
