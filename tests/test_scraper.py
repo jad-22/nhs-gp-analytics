@@ -66,7 +66,10 @@ class _FakeSession:
     def __init__(self, responses: list[_FakeResponse] | None = None) -> None:
         self.headers = {"User-Agent": "custom-agent/1.0"}
         self.calls: list[str] = []
-        self._responses = responses or [_FakeResponse(status_code=403), _FakeResponse(status_code=200, text="<html>ok</html>")]
+        self._responses = responses or [
+            _FakeResponse(status_code=403),
+            _FakeResponse(status_code=200, text="<html>ok</html>"),
+        ]
 
     def get(self, _url: str, timeout: int = 30) -> _FakeResponse:  # noqa: ARG002
         self.calls.append(self.headers.get("User-Agent", ""))
