@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
+from datetime import date, timedelta
 
 from .backfill import MonthTarget, run_target
 from .utils import append_pipeline_log, normalize_month
@@ -26,7 +26,8 @@ def main() -> int:
         target = MonthTarget(month=normalize_month(args.month), year=int(args.year))
     else:
         today = date.today()
-        target = MonthTarget(month=today.strftime("%B").lower(), year=today.year)
+        latest_published = today.replace(day=1) - timedelta(days=1)
+        target = MonthTarget(month=latest_published.strftime("%B").lower(), year=latest_published.year)
 
     result = run_target(target, dry_run=args.dry_run, keep_raw=args.keep_raw)
     append_pipeline_log(
