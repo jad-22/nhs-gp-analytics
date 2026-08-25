@@ -1,4 +1,13 @@
-from pipeline.scraper import find_target_links, publication_url, resolve_files_host_url
+from requests import HTTPError
+
+from pipeline.scraper import (
+    DEFAULT_USER_AGENT,
+    fetch_html,
+    find_target_links,
+    make_session,
+    publication_url,
+    resolve_files_host_url,
+)
 
 
 def test_publication_url_builds_month_slug() -> None:
@@ -39,3 +48,38 @@ def test_find_target_links_legacy_counts_fallback() -> None:
         links = find_target_links(html)
         assert links["totals"].href.endswith("gp_practice_counts.csv")
         assert links["mapping"].href.endswith("gp_practice_counts.csv")
+
+
+class _FakeResponse:
+    def __init__(self, status_code: int, text: str = "") -> None:
+        self.status_code = status_code
+        self.text = text
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise HTTPError(f"status={self.status_code}")
+
+
+class _FakeSession:
+    def __init__(self) -> None:
+        self.headers = {"User-Agent": "custom-agent/1.0"}
+        self.calls: list[str] = []
+
+    def get(self, _url: str, timeout: int = 30) -> _FakeResponse:  # noqa: ARG002
+        self.calls.append(self.headers.get("User-Agent", ""))
+        if len(self.calls) == 1:
+            return _FakeResponse(status_code=403)
+        return _FakeResponse(status_code=200, text="<html>ok</html>")
+
+
+def test_make_session_uses_browser_user_agent_by_default() -> None:
+    session = make_session()
+    assert session.headers["User-Agent"] == DEFAULT_USER_AGENT
+
+
+def test_fetch_html_retries_forbidden_with_default_user_agent() -> None:
+    session = _FakeSession()
+    html = fetch_html(session, "https://example.com")
+    assert html == "<html>ok</html>"
+    assert session.calls == ["custom-agent/1.0", DEFAULT_USER_AGENT]
+    assert session.headers["User-Agent"] == "custom-agent/1.0"

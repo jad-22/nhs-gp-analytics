@@ -14,6 +14,7 @@ from .utils import build_page_url
 
 
 LEGACY_TOTALS_STEMS = ("gp_practice_counts",)
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 
 
 @dataclass(frozen=True)
@@ -49,10 +50,7 @@ def make_session(user_agent: str | None = None) -> requests.Session:
     session.headers.update(
         {
             "User-Agent": user_agent
-            or (
-                "Mozilla/5.0 (compatible; nhs-gp-analytics/1.0; "
-                "+https://digital.nhs.uk/)"
-            ),
+            or DEFAULT_USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-GB,en;q=0.9",
         }
@@ -66,6 +64,19 @@ def fetch_html(session: requests.Session, url: str, timeout: int = 30) -> str:
     response = session.get(url, timeout=timeout)
     if response.status_code == 404:
         raise PageNotFoundError(f"Publication page not found: {url}")
+    if response.status_code == 403:
+        original_user_agent = session.headers.get("User-Agent")
+        if original_user_agent != DEFAULT_USER_AGENT:
+            session.headers["User-Agent"] = DEFAULT_USER_AGENT
+            try:
+                response = session.get(url, timeout=timeout)
+                if response.status_code == 404:
+                    raise PageNotFoundError(f"Publication page not found: {url}")
+            finally:
+                if original_user_agent is None:
+                    session.headers.pop("User-Agent", None)
+                else:
+                    session.headers["User-Agent"] = original_user_agent
     response.raise_for_status()
     return response.text
 
