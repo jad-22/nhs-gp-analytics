@@ -1,11 +1,11 @@
 import pytest
-from requests import HTTPError
 
 from pipeline.scraper import (
     DEFAULT_USER_AGENT,
     fetch_html,
     find_target_links,
     make_session,
+    PageForbiddenError,
     publication_url,
     resolve_files_host_url,
 )
@@ -88,7 +88,7 @@ def test_fetch_html_retries_forbidden_with_default_user_agent() -> None:
 
 def test_fetch_html_raises_for_persistent_forbidden() -> None:
     session = _FakeSession(responses=[_FakeResponse(status_code=403), _FakeResponse(status_code=403)])
-    with pytest.raises(HTTPError):
+    with pytest.raises(PageForbiddenError):
         fetch_html(session, "https://example.com")
     assert session.calls == ["custom-agent/1.0", DEFAULT_USER_AGENT]
     assert session.headers["User-Agent"] == "custom-agent/1.0"

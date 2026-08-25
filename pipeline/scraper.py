@@ -29,6 +29,10 @@ class PageNotFoundError(RuntimeError):
     """Raised when the monthly publication page does not exist yet."""
 
 
+class PageForbiddenError(RuntimeError):
+    """Raised when the publication page blocks automated access."""
+
+
 class LinksNotFoundError(RuntimeError):
     """Raised when expected dataset links are absent from a publication page."""
 
@@ -77,6 +81,8 @@ def fetch_html(session: requests.Session, url: str, timeout: int = 30) -> str:
                     session.headers.pop("User-Agent", None)
                 else:
                     session.headers["User-Agent"] = original_user_agent
+        if response.status_code == 403:
+            raise PageForbiddenError(f"Publication page forbidden (HTTP 403): {url}")
     response.raise_for_status()
     return response.text
 
@@ -179,6 +185,7 @@ def download_file(
 __all__ = [
     "DownloadError",
     "LinksNotFoundError",
+    "PageForbiddenError",
     "PageNotFoundError",
     "TargetLink",
     "download_file",
