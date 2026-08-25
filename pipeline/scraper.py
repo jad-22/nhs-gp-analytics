@@ -183,6 +183,7 @@ def download_file(
 
 
 __all__ = [
+    "DEFAULT_USER_AGENT",
     "DownloadError",
     "LinksNotFoundError",
     "PageForbiddenError",
