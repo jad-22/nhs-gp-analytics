@@ -1,4 +1,5 @@
 import pytest
+from requests import HTTPError
 
 from pipeline.scraper import (
     DEFAULT_USER_AGENT,
