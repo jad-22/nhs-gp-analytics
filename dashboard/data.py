@@ -58,6 +58,14 @@ FORECAST_MODELS: dict[str, Forecaster] = {
 # lives in one place rather than being implied by dict ordering.
 DEFAULT_FORECAST_MODEL = "AutoETS (recommended)"
 
+# The default for national, regional and ICB series. DEC-011 found the ranking reverses
+# with aggregation level: AutoETS wins practice and PCN series, Holt-Winters wins the
+# aggregates, so one dashboard-wide default would be wrong at one end or the other.
+# `scripts/build_forecast_cache.py` encodes the same split as DEFAULT_PRACTICE_MODEL /
+# DEFAULT_AGGREGATE_MODEL; the two must agree or the dashboard and the API will serve
+# different numbers for the same series.
+AGGREGATE_FORECAST_MODEL = "Holt-Winters"
+
 # The library symbol each optional model needs; None means not installed and the
 # label is hidden so it never silently serves the linear fallback (DEC-009 guard).
 _MODEL_REQUIREMENTS: dict[str, object] = {
@@ -79,18 +87,30 @@ def forecast_model_options() -> list[str]:
     ]
 
 
-def default_forecast_model() -> str:
-    """The model used when no model is named.
+def _available_or_fallback(preferred: str) -> str:
+    """``preferred`` if its library is installed, else the first model that is.
 
-    Falls back to the first available option when statsforecast is missing, so the
-    default never resolves to a model whose library is absent — that would serve the
-    linear fallback under a real model's name (the DEC-009 guard).
+    Falls back rather than returning a model whose library is absent, because every
+    forecaster degrades to a linear trend when it cannot import — which would serve a
+    straight line under a real model's name (the DEC-009 guard).
     """
 
     options = forecast_model_options()
-    if DEFAULT_FORECAST_MODEL in options:
-        return DEFAULT_FORECAST_MODEL
-    return options[0] if options else DEFAULT_FORECAST_MODEL
+    if preferred in options:
+        return preferred
+    return options[0] if options else preferred
+
+
+def default_forecast_model() -> str:
+    """The model used for practice-level series when no model is named."""
+
+    return _available_or_fallback(DEFAULT_FORECAST_MODEL)
+
+
+def default_aggregate_forecast_model() -> str:
+    """The model used for national, regional and ICB series when no model is named."""
+
+    return _available_or_fallback(AGGREGATE_FORECAST_MODEL)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
@@ -368,6 +388,46 @@ def practice_history_with_forecast(
     return history, forecast, calibrated
 
 
+@st.cache_data(ttl=3600)
+def aggregate_history_with_forecast(
+    monthly: pd.DataFrame,
+    periods: int = 12,
+    model: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+    """Forecast an aggregated monthly total, and say whether the band is calibrated.
+
+    ``monthly`` must be the output of ``aggregate_list_size`` — one summed row per
+    month. An unaggregated frame would be silently wrong rather than an error:
+    ``science.forecasting._prepare_series`` collapses duplicate months with
+    ``groupby("ds").mean()``, so a multi-practice frame yields a mean per practice, an
+    order-of-magnitude error that still looks like a plausible number (DEC-012 guard 2).
+    The duplicate-month check below turns that into a loud failure.
+
+    Defaults to Holt-Winters, which wins the aggregate backtests, rather than the
+    practice-level AutoETS default (DEC-011).
+    """
+
+    if monthly.empty:
+        return _empty(), _empty(), False
+
+    history = (
+        monthly[["SNAPSHOT_DATE", "PATIENT_COUNT"]]
+        .rename(columns={"PATIENT_COUNT": "NUMBER_OF_PATIENTS"})
+        .sort_values("SNAPSHOT_DATE")
+        .reset_index(drop=True)
+    )
+    if history["SNAPSHOT_DATE"].duplicated().any():
+        raise ValueError(
+            "aggregate_history_with_forecast expects one summed row per month; "
+            "pass the output of aggregate_list_size, not a per-practice frame."
+        )
+
+    resolved = model or default_aggregate_forecast_model()
+    forecaster = FORECAST_MODELS.get(resolved, holt_winters_forecast)
+    forecast, calibrated = calibrated_forecast(history, forecaster, periods=periods)
+    return history, forecast, calibrated
+
+
 def format_int(value: object) -> str:
     """Format a numeric value for compact dashboard text."""
 
@@ -387,11 +447,14 @@ def format_pct(value: object) -> str:
 
 
 __all__ = [
+    "AGGREGATE_FORECAST_MODEL",
     "DEFAULT_FORECAST_MODEL",
     "FORECAST_MODELS",
     "PageFilters",
+    "default_aggregate_forecast_model",
     "default_forecast_model",
     "forecast_model_options",
+    "aggregate_history_with_forecast",
     "aggregate_list_size",
     "aggregate_market_share",
     "as_page_filters",

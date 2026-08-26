@@ -559,3 +559,72 @@ Impact
   approach.
 - The API publishes **measured** out-of-sample interval coverage at `/v1/meta` rather
   than the nominal 80%, per DEC-011 §7.5.
+
+---
+
+### DEC-013: The Dashboard Forecasts Aggregates Too, Defaulting to Holt-Winters
+
+- Date: 2026-08-26
+- Status: Accepted
+- Scope: Dashboard
+- Related: DEC-007 (interval calibration), DEC-009 (silent-fallback guard),
+  DEC-011 (per-level model choice), DEC-012 (precomputed serving artifacts)
+
+Context
+- DEC-011 established that the best model *depends on aggregation level*: AutoETS wins
+  practice and PCN series, Holt-Winters wins ICB, regional and national. The API acts on
+  both halves — `scripts/build_forecast_cache.py` has `DEFAULT_PRACTICE_MODEL` and
+  `DEFAULT_AGGREGATE_MODEL`.
+- The dashboard acted on only one. It forecast nothing above practice level: the
+  national and regional charts were history-only, so the Holt-Winters half of the
+  finding had no expression in the UI. A dashboard user could not see a forecast for
+  the selection they had just filtered to.
+
+Decision
+- The List Size Trends page gains a **forecast for the current selection**, sitting
+  between the national/regional charts and the practice drill-down. It forecasts the
+  summed total, so it follows the sidebar filters — national with no filters, a region
+  or ICB once one is chosen.
+- **Holt-Winters is the default there**, with the same selector offering every other
+  model for comparison. `AGGREGATE_FORECAST_MODEL` and `default_aggregate_forecast_model()`
+  state it once, mirroring the existing practice-level pair.
+- Both selectors now set an explicit `index` from their default rather than relying on
+  dict ordering, and carry explicit `key`s.
+
+Rationale
+- Measured, not assumed: the aggregate path costs **0.30s** for a Holt-Winters fit plus
+  the six-cutoff calibration backtest on the 78-month national series, and the result
+  calibrates (`calibrated=True`). That is cheap enough to run on page load rather than
+  hiding it behind an expander, and it is `@st.cache_data`-memoised per filter selection.
+- Reusing `calibrated_forecast` means the aggregate band gets the DEC-007 calibration
+  on the same terms as the practice band, rather than a second interval implementation.
+- `practice_forecast_chart` was generalised to `forecast_chart` rather than copied; the
+  practice entry point stays as a thin wrapper so its empty-state message ("Search for a
+  practice…") does not leak into the aggregate chart.
+
+The guard this needed
+- `science.forecasting._prepare_series` collapses duplicate months with
+  `groupby("ds").mean()` — the DEC-012 guard-2 hazard. Passing an unaggregated
+  multi-practice frame would therefore forecast a *mean per practice*: roughly 8,000
+  instead of 63,000,000. Wrong by four orders of magnitude, but still a plausible-looking
+  patient count on an unlabelled axis.
+- `aggregate_history_with_forecast` requires the output of `aggregate_list_size` (which
+  sums) and **raises on duplicate months**, converting a silent scale error into a loud
+  failure. A test asserts the raise, and the smoke check asserts the forecast lands
+  near the summed total rather than a per-practice mean.
+
+Impact
+- The dashboard and the API now agree on which model serves which level; a test
+  (`test_dashboard_aggregate_default_matches_the_cache_builder`) asserts
+  `dashboard/data.py` and `scripts/build_forecast_cache.py` resolve to the same
+  callables, so the two cannot drift apart silently.
+- Prophet remains selectable at both levels and is the default at neither.
+
+Implementation Notes
+- `dashboard/data.py`: `AGGREGATE_FORECAST_MODEL`, `default_aggregate_forecast_model()`,
+  `aggregate_history_with_forecast()`, and `_available_or_fallback()` shared by both
+  defaults (preserving the DEC-009 guard for each).
+- `dashboard/components/charts.py`: `forecast_chart()`, with `practice_forecast_chart()`
+  delegating to it.
+- `dashboard/pages/1_List_Size_Trends.py`: the new section and both selector `index`/`key`s.
+- Tests in `tests/test_stat_forecasting.py`.

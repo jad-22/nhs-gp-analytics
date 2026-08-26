@@ -176,11 +176,58 @@ def test_autoets_is_the_practice_drilldown_default() -> None:
 
     assert DEFAULT_FORECAST_MODEL == "AutoETS (recommended)"
     assert FORECAST_MODELS[DEFAULT_FORECAST_MODEL] is autoets_forecast
-    # The selector has no explicit index, so the first option is what users land on.
+    # The selector indexes off default_forecast_model(), but AutoETS also leads the
+    # dict so the recommendation reads first in the dropdown.
     assert forecast_model_options()[0] == DEFAULT_FORECAST_MODEL if HAS_STATSFORECAST else True
 
     if HAS_STATSFORECAST:
         assert default_forecast_model() == DEFAULT_FORECAST_MODEL
+
+
+def test_holt_winters_is_the_aggregate_default() -> None:
+    """DEC-011: the ranking reverses with aggregation level, so aggregates get Holt-Winters."""
+
+    from dashboard.data import (
+        AGGREGATE_FORECAST_MODEL,
+        DEFAULT_FORECAST_MODEL,
+        FORECAST_MODELS,
+        default_aggregate_forecast_model,
+    )
+    from science.stat_forecasting import holt_winters_forecast
+
+    assert AGGREGATE_FORECAST_MODEL == "Holt-Winters"
+    assert FORECAST_MODELS[AGGREGATE_FORECAST_MODEL] is holt_winters_forecast
+    # The whole point of the split: the two levels must not resolve to one model.
+    assert AGGREGATE_FORECAST_MODEL != DEFAULT_FORECAST_MODEL
+
+    if HAS_STATSMODELS:
+        assert default_aggregate_forecast_model() == AGGREGATE_FORECAST_MODEL
+
+
+def test_dashboard_aggregate_default_matches_the_cache_builder() -> None:
+    """The dashboard and the precomputed API must not serve different models per level."""
+
+    from dashboard.data import AGGREGATE_FORECAST_MODEL, DEFAULT_FORECAST_MODEL, FORECAST_MODELS
+    from scripts.build_forecast_cache import (
+        DEFAULT_AGGREGATE_MODEL,
+        DEFAULT_PRACTICE_MODEL,
+        MODELS,
+    )
+
+    assert FORECAST_MODELS[AGGREGATE_FORECAST_MODEL] is MODELS[DEFAULT_AGGREGATE_MODEL]
+    assert FORECAST_MODELS[DEFAULT_FORECAST_MODEL] is MODELS[DEFAULT_PRACTICE_MODEL]
+
+
+def test_default_aggregate_forecast_model_falls_back_when_library_missing(monkeypatch) -> None:
+    """Same DEC-009 guard as the practice default: never name a model that cannot run."""
+
+    import dashboard.data as data
+
+    monkeypatch.setitem(data._MODEL_REQUIREMENTS, data.AGGREGATE_FORECAST_MODEL, None)
+    resolved = data.default_aggregate_forecast_model()
+
+    assert resolved != data.AGGREGATE_FORECAST_MODEL
+    assert resolved in data.forecast_model_options()
 
 
 def test_default_forecast_model_falls_back_when_library_missing(monkeypatch) -> None:
@@ -193,3 +240,58 @@ def test_default_forecast_model_falls_back_when_library_missing(monkeypatch) -> 
 
     assert resolved != data.DEFAULT_FORECAST_MODEL
     assert resolved in data.forecast_model_options()
+
+
+def _monthly_aggregate(months: int = 60) -> pd.DataFrame:
+    """A summed monthly total in aggregate_list_size's output shape."""
+
+    dates = pd.date_range("2019-01-01", periods=months, freq="MS")
+    values = np.linspace(1_000_000, 1_060_000, months) + np.tile([0, 900, -700, 400, -200, 100], months // 6)[:months]
+    return pd.DataFrame(
+        {"SNAPSHOT_DATE": dates, "PATIENT_COUNT": values, "PRACTICE_COUNT": 120}
+    )
+
+
+@pytest.mark.skipif(not HAS_STATSMODELS, reason="statsmodels not installed")
+def test_aggregate_history_with_forecast_projects_the_summed_total() -> None:
+    """The aggregate forecast runs on the summed series and stays on its scale."""
+
+    from dashboard.data import aggregate_history_with_forecast
+
+    monthly = _monthly_aggregate()
+    history, forecast, calibrated = aggregate_history_with_forecast(monthly, periods=12)
+
+    assert len(history) == len(monthly)
+    assert history["NUMBER_OF_PATIENTS"].tolist() == monthly["PATIENT_COUNT"].tolist()
+    assert len(forecast) == 12
+    assert {"ds", "yhat", "yhat_lower", "yhat_upper"}.issubset(forecast.columns)
+    assert calibrated is True
+    # Forecasting the sum, not a per-practice mean: an averaged series would land
+    # near 8,000 rather than the million-scale total.
+    assert forecast["yhat"].min() > monthly["PATIENT_COUNT"].min() * 0.5
+    assert (forecast["yhat_lower"] <= forecast["yhat"]).all()
+    assert (forecast["yhat"] <= forecast["yhat_upper"]).all()
+
+
+def test_aggregate_history_with_forecast_rejects_an_unaggregated_frame() -> None:
+    """DEC-012 guard 2: duplicate months would be averaged, not summed, and look plausible."""
+
+    from dashboard.data import aggregate_history_with_forecast
+
+    monthly = _monthly_aggregate(48)
+    per_practice = pd.concat([monthly, monthly], ignore_index=True)
+
+    with pytest.raises(ValueError, match="one summed row per month"):
+        aggregate_history_with_forecast(per_practice, periods=12)
+
+
+def test_aggregate_history_with_forecast_handles_an_empty_selection() -> None:
+    """Filters can exclude everything; that is an empty chart, not a crash."""
+
+    from dashboard.data import aggregate_history_with_forecast
+
+    history, forecast, calibrated = aggregate_history_with_forecast(pd.DataFrame(), periods=12)
+
+    assert history.empty
+    assert forecast.empty
+    assert calibrated is False

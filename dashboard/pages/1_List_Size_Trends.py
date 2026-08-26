@@ -12,14 +12,17 @@ REPO_ROOT = next(parent for parent in Path(__file__).resolve().parents if (paren
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from dashboard.components.charts import patient_total_line, practice_forecast_chart, regional_patient_lines
+from dashboard.components.charts import forecast_chart, patient_total_line, practice_forecast_chart, regional_patient_lines
 from dashboard.components.filters import render_sidebar
 from dashboard.components.theme import BORDER, CORAL, FONT_MONO, MUTED, inject_global_css
 from dashboard.data import (
+    aggregate_history_with_forecast,
     aggregate_list_size,
     as_page_filters,
     cache_health,
     code_from_option,
+    default_aggregate_forecast_model,
+    default_forecast_model,
     filter_frame,
     forecast_model_options,
     format_int,
@@ -72,6 +75,43 @@ st.plotly_chart(patient_total_line(monthly, "Registered patients over time"), us
 st.plotly_chart(regional_patient_lines(geo, "Regional breakdown"), use_container_width=True)
 
 st.markdown("---")
+st.markdown("<h2>Forecast for the current selection</h2>", unsafe_allow_html=True)
+st.markdown(
+    f"""<p style="color:{MUTED}; max-width:72ch;">
+        Twelve months ahead for the summed total above, so it follows the sidebar
+        filters. Holt-Winters is the default here rather than the AutoETS used for the
+        practice drill-down below: DEC-011 found the ranking reverses with aggregation
+        level, and Holt-Winters wins the national, regional and ICB backtests.
+    </p>""",
+    unsafe_allow_html=True,
+)
+
+aggregate_options = forecast_model_options()
+aggregate_model = st.selectbox(
+    "Forecast model",
+    options=aggregate_options,
+    index=aggregate_options.index(default_aggregate_forecast_model()) if aggregate_options else 0,
+    help="Holt-Winters ranked best on aggregated series in rolling-origin backtesting (regional median MASE 0.183; see docs/FORECAST_VALIDATION.md §6). AutoETS wins at practice level and Prophet at neither - the ranking depends on aggregation level.",
+    key="aggregate_forecast_model",
+)
+aggregate_history, aggregate_forecast, aggregate_calibrated = aggregate_history_with_forecast(
+    monthly, model=aggregate_model
+)
+st.plotly_chart(
+    forecast_chart(
+        aggregate_history,
+        aggregate_forecast,
+        f"Registered patients forecast - {aggregate_model}",
+        empty_message="No data in the selected filters to forecast.",
+    ),
+    use_container_width=True,
+)
+if aggregate_calibrated:
+    st.caption("80% band calibrated from this series' rolling-origin backtest errors (DEC-007).")
+elif not aggregate_forecast.empty:
+    st.caption("Native model band - history too short to calibrate (needs ~4 years); treat as indicative.")
+
+st.markdown("---")
 st.markdown("<h2>Practice drill-down</h2>", unsafe_allow_html=True)
 st.markdown(
     f"""<p style="color:{MUTED}; max-width:72ch;">
@@ -99,10 +139,13 @@ else:
         st.info("No matching practices in the selected filters.")
 
 if code:
+    practice_options_list = forecast_model_options()
     model = st.selectbox(
         "Forecast model",
-        options=forecast_model_options(),
+        options=practice_options_list,
+        index=practice_options_list.index(default_forecast_model()) if practice_options_list else 0,
         help="AutoETS ranked best at practice level in rolling-origin backtesting (median MASE 0.525 across 999 practices; see docs/FORECAST_VALIDATION.md §7). Holt-Winters wins on aggregated series, and Prophet ranks 5th here — the ranking depends on aggregation level.",
+        key="practice_forecast_model",
     )
     history, forecast, calibrated = practice_history_with_forecast(code, model=model)
     st.plotly_chart(practice_forecast_chart(history, forecast, f"{code} list size forecast - {model}"), use_container_width=True)
