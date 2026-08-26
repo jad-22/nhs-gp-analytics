@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -14,6 +15,13 @@ from .utils import build_page_url
 
 
 LEGACY_TOTALS_STEMS = ("gp_practice_counts",)
+
+# NHS Digital's edge occasionally returns a transient block to automated
+# traffic (observed: a GitHub Actions runner IP got a 403 on a page that
+# returned 200 moments later from an unrelated IP with the same request).
+# These statuses are worth a retry; a 404 means the page genuinely doesn't
+# exist yet and anything else (401, etc.) is treated as permanent.
+RETRYABLE_STATUSES = {403, 429, 500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -60,14 +68,46 @@ def make_session(user_agent: str | None = None) -> requests.Session:
     return session
 
 
-def fetch_html(session: requests.Session, url: str, timeout: int = 30) -> str:
-    """Fetch page HTML, converting 404s into a typed pipeline error."""
+def fetch_html(
+    session: requests.Session,
+    url: str,
+    timeout: int = 30,
+    retries: int = 3,
+    backoff_seconds: float = 2.0,
+) -> str:
+    """Fetch page HTML, converting 404s into a typed pipeline error.
 
-    response = session.get(url, timeout=timeout)
-    if response.status_code == 404:
-        raise PageNotFoundError(f"Publication page not found: {url}")
-    response.raise_for_status()
-    return response.text
+    Retries transient statuses (see `RETRYABLE_STATUSES`) and connection
+    errors with exponential backoff before giving up.
+    """
+
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            response = session.get(url, timeout=timeout)
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt >= retries:
+                raise
+            time.sleep(backoff_seconds**attempt)
+            continue
+
+        if response.status_code == 404:
+            raise PageNotFoundError(f"Publication page not found: {url}")
+
+        if response.status_code in RETRYABLE_STATUSES and attempt < retries:
+            last_error = requests.exceptions.HTTPError(
+                f"{response.status_code} on attempt {attempt}/{retries} for {url}",
+                response=response,
+            )
+            time.sleep(backoff_seconds**attempt)
+            continue
+
+        response.raise_for_status()
+        return response.text
+
+    assert last_error is not None
+    raise last_error
 
 
 def find_target_links(html: str) -> dict[str, TargetLink]:
@@ -157,10 +197,7 @@ def download_file(
             last_error = exc
             if attempt >= retries:
                 break
-            delay = backoff_seconds ** attempt
-            import time
-
-            time.sleep(delay)
+            time.sleep(backoff_seconds**attempt)
 
     raise DownloadError(f"Failed to download {url}: {last_error}")
 

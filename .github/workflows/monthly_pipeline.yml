@@ -1,8 +1,17 @@
+# The monthly schedule now lives on a Windows Task Scheduler job driving
+# scripts/local_refresh.ps1 — see docs/LOCAL_REFRESH.md.
+#
+# Cloudflare, in front of digital.nhs.uk, returns 403 to this runner on every attempt regardless of
+# User-Agent (the same request from a residential IP returns 200, including with a bare curl UA), so
+# a scheduled run here could only ever go red. The publication page cannot be bypassed either: the
+# download URLs carry an opaque per-file hex segment that changes every month, so the links have to
+# be scraped rather than reconstructed.
+#
+# workflow_dispatch is kept as a manual fallback — worth trying if the block ever lifts, and it is
+# the only way to drive a specific month from CI.
 name: Monthly NHS GP Data Pipeline
 
 on:
-  schedule:
-    - cron: "30 10 8-14 * 4"
   workflow_dispatch:
     inputs:
       month:
@@ -46,6 +55,12 @@ jobs:
           fi
           python -m pipeline.monthly $ARGS
 
+      - name: Re-join enrichment
+        # A newly ingested month's mapping rows come straight from the NHS extract with no IMD or
+        # ONSPD columns. Skipping this leaves IMD_DECILE all-NaN for the latest snapshot and the
+        # next step dies inside cluster_practices, where SimpleImputer drops the all-NaN column.
+        run: python scripts/join_enrichment.py
+
       - name: Rebuild dashboard cache
         run: python scripts/build_dashboard_cache.py --skip-anomalies
 
@@ -64,5 +79,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/processed/ data/pipeline_log.json
-          git commit -m "data: monthly pipeline refresh [skip ci]"
+          # No [skip ci]: a data push is the trigger a downstream forecast-cache workflow needs.
+          git commit -m "data: monthly pipeline refresh"
           git push

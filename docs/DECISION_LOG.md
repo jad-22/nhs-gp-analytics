@@ -351,3 +351,70 @@ Implementation Notes
 - `science/backtesting.py` (`calibrated_forecast`), `dashboard/data.py`
   (`FORECAST_MODELS`, `forecast_model_options`, `practice_history_with_forecast`),
   `dashboard/pages/1_List_Size_Trends.py`; tests in `tests/test_backtesting.py`.
+
+---
+
+### DEC-013: Move Monthly Ingestion Off GitHub Actions to a Local Scheduled Task
+
+- Date: 2026-08-26
+- Status: Accepted
+- Scope: Pipeline / Infrastructure
+
+Context
+- The July and August 2026 scheduled runs both failed at `fetch_html` with a 403 from
+  `digital.nhs.uk`, a page that is plainly present when opened by hand.
+- The block is by source IP, not by request shape: from a residential IP the page returns
+  200 with the pipeline's own User-Agent, with a Chrome UA, and with a bare `curl/8.x` UA.
+  Cloudflare is scoring the runner's Azure range.
+- Retrying does not address it. All attempts leave the same runner IP within a few seconds.
+- The publication page cannot be bypassed: download URLs carry an opaque per-file hex
+  segment (`/45/E255E0/gp-reg-pat-prac-all.zip`) that changes monthly and differs between
+  the two files of one publication, so the links must be scraped, not reconstructed.
+
+Decision
+- `scripts/local_refresh.ps1` runs ingestion plus the dashboard cache rebuild from a local
+  machine and pushes `data/processed/` to `main`, driven by a daily Windows Task Scheduler
+  job (`scripts/nhs-gp-monthly-refresh.xml`). Setup is in `docs/LOCAL_REFRESH.md`.
+- The `schedule:` trigger is removed from `monthly_pipeline.yml`; `workflow_dispatch`
+  stays as a manual fallback.
+- A self-hosted runner was rejected: it would have kept the workflow intact, but this
+  repository is public and a fork PR can execute arbitrary code on a self-hosted host.
+
+Rationale
+- Only the scrape needs a residential IP. `build_dashboard_cache.py` and
+  `build_forecast_cache.py` make no network calls, so the expensive work stays on
+  GitHub's runners and only ~30 seconds of scraping moves local.
+- The task runs daily and no-ops when the month is already ingested on `origin/main`, so a
+  machine that is off on publication day catches up on its next run — something a
+  once-monthly trigger cannot do.
+- The script reads `data/pipeline_log.json` rather than the exit code of `pipeline.monthly`,
+  which returns 1 for both `failed` and `not_published`; conflating them would make every
+  pre-publication run look like a failure.
+
+Impact
+- Monthly refresh depends on a personal machine being switched on at some point in the
+  publication window, which is a real availability regression against CI — accepted
+  because the CI path cannot reach the source at all.
+- Data commits now come from a local identity instead of `github-actions[bot]`.
+
+Implementation Notes
+- `scripts/local_refresh.ps1`, `scripts/nhs-gp-monthly-refresh.xml`,
+  `docs/LOCAL_REFRESH.md`, `.github/workflows/monthly_pipeline.yml`.
+- Commit messages deliberately omit `[skip ci]`, so a future forecast-cache workflow can
+  trigger on the data push. That workflow is not wired up yet: `build_forecast_cache.py`
+  exists only on the unmerged `feature/statistical-forecasters` branch.
+- End-to-end verified from a clean clone: august 2026, 6,129 practices, ~90 seconds,
+  100% IMD and geo coverage.
+
+Follow-on Fix
+- The first end-to-end run surfaced a second, pre-existing break that the 403 had been
+  masking: neither the workflow nor any other step re-ran `scripts/join_enrichment.py`
+  after ingestion. A newly ingested month's mapping rows come straight from the NHS
+  extract with no IMD or ONSPD columns, so `IMD_DECILE` was entirely NaN for the latest
+  snapshot. `build_dashboard_cache.py` then died in `cluster_practices`: `SimpleImputer`
+  silently drops an all-NaN column, so the imputed matrix is rebuilt against a column
+  index one wider than itself (`Shape of passed values is (6129, 2), indices imply
+  (6129, 3)`). Fixing the 403 alone would only have moved the failure one step later.
+- `join_enrichment.py` now runs between ingestion and the cache rebuild, in both
+  `local_refresh.ps1` and `monthly_pipeline.yml`. It rewrites `data/processed/mapping.parquet`
+  in place, re-enriching every month including the new one.
