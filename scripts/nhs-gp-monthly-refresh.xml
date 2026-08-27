@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!--
+  Task Scheduler definition for the local NHS GP data refresh.
+
+  Register with:
+    Register-ScheduledTask -TaskName 'NHS GP Monthly Refresh' `
+      -Xml (Get-Content -Raw scripts\nhs-gp-monthly-refresh.xml)
+
+  The trigger is daily rather than aimed at publication day. local_refresh.ps1 exits immediately
+  when the current month is already ingested on origin/main, so a daily run costs one fetch and one
+  HEAD-ish request on all the days it has nothing to do — and, crucially, a machine that was off on
+  publication day simply picks the work up the next time it is on. StartWhenAvailable covers runs
+  missed while the machine was asleep.
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Runs the NHS GP monthly ingestion from this machine (GitHub-hosted runners are 403-blocked by Cloudflare in front of digital.nhs.uk) and pushes refreshed data to origin/main.</Description>
+    <URI>\NHS GP Monthly Refresh</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-09-01T10:30:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT30M</Interval>
+      <Count>2</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\nhs-gp-refresh\repo\scripts\local_refresh.ps1"</Arguments>
+    </Exec>
+  </Actions>
+</Task>

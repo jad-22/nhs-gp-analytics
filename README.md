@@ -43,7 +43,8 @@ flowchart TD
 	L --> M[data/processed/dashboard/*.parquet]
 
 	M --> N[Streamlit App: dashboard/app.py + pages]
-	O[GitHub Actions monthly_pipeline.yml] --> B
+	O[Task Scheduler: scripts/local_refresh.ps1] --> B
+	O --> K
 	O --> L
 	O --> P[Commit updated Parquet to main]
 	P --> N
@@ -59,6 +60,10 @@ flowchart TD
 	T --> U[FastAPI: api/main.py]
 	P --> V[GitHub Actions api_image.yml] --> U
 ```
+
+The monthly refresh runs from a local scheduled task rather than GitHub Actions: Cloudflare, in
+front of `digital.nhs.uk`, returns 403 to GitHub-hosted runners regardless of User-Agent. See
+[docs/LOCAL_REFRESH.md](docs/LOCAL_REFRESH.md).
 
 ## Project Context
 
@@ -306,8 +311,11 @@ Full reference, caveats and worked examples: [`docs/API.md`](docs/API.md).
 
 - [x] Build monthly entry point (`pipeline/monthly.py`)
 - [x] Implement monthly GitHub Actions workflow (`.github/workflows/monthly_pipeline.yml`)
-- [ ] Test manual `workflow_dispatch` trigger in GitHub Actions
-- [ ] Verify commit-back to `main` and Streamlit redeploy after a successful run
+- [x] Move the schedule to a local task after CI proved unreachable from GitHub runners (DEC-013)
+- [x] Verify commit-back end to end from a clean clone (august 2026, 6,129 practices)
+- [ ] Register the scheduled task on the local machine (`docs/LOCAL_REFRESH.md`)
+- [ ] Backfill july 2026, missed while the CI runs were 403-blocked
+- [ ] Verify Streamlit redeploy after a successful pushed run
 
 ## Notes
 
