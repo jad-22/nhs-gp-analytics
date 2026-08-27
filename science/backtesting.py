@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from science.forecasting import Prophet, _linear_forecast, _prepare_series, forecast_list_size
+from science.stat_forecasting import statistical_forecasters
 
 # A forecaster takes a training frame with ds/y columns and a number of future
 # monthly periods, and returns a frame with ds/yhat (optionally yhat_lower/yhat_upper).
@@ -94,8 +95,10 @@ def linear_forecast(df: pd.DataFrame, periods: int) -> pd.DataFrame:
 def default_forecasters() -> dict[str, Forecaster]:
     """Candidate models for compare_models, keyed by display name.
 
-    The production Prophet model is only included when Prophet is importable, so a
-    lean environment never silently scores the linear fallback under Prophet's name.
+    The production Prophet model and the classical statistical models (DEC-010:
+    Holt-Winters, ARIMA, SARIMA, AutoETS) are only included when their libraries are
+    importable, so a lean environment never silently scores a fallback under a real
+    model's name.
     """
 
     forecasters: dict[str, Forecaster] = {
@@ -105,6 +108,7 @@ def default_forecasters() -> dict[str, Forecaster]:
     }
     if Prophet is not None:
         forecasters["prophet"] = forecast_list_size
+    forecasters.update(statistical_forecasters())
     return forecasters
 
 

@@ -17,3 +17,6 @@ Thumbs.db
 
 # Logs
 *.log
+# API serving database: a build artifact compiled from the committed Parquet files by
+# scripts/build_serving_db.py, regenerated on every Docker build.
+data/processed/serving.duckdb

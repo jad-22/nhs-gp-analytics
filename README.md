@@ -48,6 +48,17 @@ flowchart TD
 	O --> L
 	O --> P[Commit updated Parquet to main]
 	P --> N
+
+	F --> Q[scripts/build_forecast_cache]
+	G --> Q
+	Q --> R[data/processed/forecasts.parquet + forecast_metrics.parquet]
+	O --> Q
+	R --> S[scripts/build_serving_db]
+	F --> S
+	G --> S
+	S --> T[serving.duckdb - built into the image]
+	T --> U[FastAPI: api/main.py]
+	P --> V[GitHub Actions api_image.yml] --> U
 ```
 
 The monthly refresh runs from a local scheduled task rather than GitHub Actions: Cloudflare, in
@@ -69,10 +80,15 @@ The objective is a production-quality monthly pipeline that ingests NHS GP regis
 ```text
 nhs-gp-analytics/
 |-- .github/workflows/
+|-- api/
+|   |-- routers/
+|   `-- main.py
 |-- data/
 |   |-- enrichment/
 |   |-- processed/
 |   |   |-- dashboard/
+|   |   |-- forecasts.parquet
+|   |   |-- forecast_metrics.parquet
 |   |   |-- list_size.parquet
 |   |   `-- mapping.parquet
 |   |-- raw/
@@ -258,6 +274,30 @@ After enrichment changes, rebuild dashboard caches:
 python scripts/build_dashboard_cache.py
 ```
 
+## Public API
+
+The same data is served over a free, unauthenticated, read-only REST API. The core call
+is a practice lookup by ODS code:
+
+```bash
+curl -s http://localhost:8000/v1/practices/A81001/forecast
+```
+
+Forecasts are **precomputed**, never fitted per request: `scripts/build_forecast_cache.py`
+backtests and fits every one of the ~7,500 served series monthly and writes
+`data/processed/forecasts.parquet` and `forecast_metrics.parquet`, which are committed
+like the rest of the processed data. `scripts/build_serving_db.py` then compiles those
+into a `serving.duckdb` file at Docker build time, so the serving image contains no
+forecasting library at all and every response is a lookup.
+
+```bash
+pip install -r requirements-api.txt
+python scripts/build_serving_db.py
+uvicorn api.main:app --reload      # docs at /docs, spec at /v1/openapi.json
+```
+
+Full reference, caveats and worked examples: [`docs/API.md`](docs/API.md).
+
 ## Current Status
 
 - Phase 1 is complete: processed list-size and mapping Parquet outputs exist with enrichment joined.
@@ -265,6 +305,7 @@ python scripts/build_dashboard_cache.py
 - Phase 3 is complete: the Streamlit dashboard, shared components, page filters, and cached dashboard datasets are implemented and deployed on Streamlit Cloud.
 - Phase 4 is in progress: monthly pipeline automation and commit-back workflow implementation is complete; live workflow/redeploy validation is next.
 - Phase 5 is in progress: README story/architecture updates and an About the data dashboard page are now in place.
+- Phase 6 is in progress: the forecast precompute, the FastAPI service and its container are implemented and tested locally; hosting on Hetzner behind Cloudflare is next.
 
 ## Phase 4: Pipeline Automation Checklist
 

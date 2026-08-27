@@ -87,11 +87,21 @@ def regional_patient_lines(frame: pd.DataFrame, title: str, max_regions: int = 8
     return apply_brand_theme(fig, title=title, height=440, show_legend=True)
 
 
-def practice_forecast_chart(history: pd.DataFrame, forecast: pd.DataFrame, title: str) -> go.Figure:
-    """Practice history with forecast confidence band."""
+def forecast_chart(
+    history: pd.DataFrame,
+    forecast: pd.DataFrame,
+    title: str,
+    empty_message: str = "No data available for the selected filters.",
+) -> go.Figure:
+    """Observed history with a forecast confidence band.
+
+    ``history`` carries SNAPSHOT_DATE/NUMBER_OF_PATIENTS and ``forecast`` the
+    ds/yhat/yhat_lower/yhat_upper produced by ``calibrated_forecast``, whatever the
+    series' aggregation level.
+    """
 
     if history.empty:
-        return empty_figure(title, "Search for a practice to view its time series.")
+        return empty_figure(title, empty_message)
 
     fig = go.Figure()
     fig.add_trace(
@@ -141,6 +151,17 @@ def practice_forecast_chart(history: pd.DataFrame, forecast: pd.DataFrame, title
 
     fig.update_yaxes(title_text="Registered patients", tickformat=",.0f")
     return apply_brand_theme(fig, title=title, height=420, show_legend=True)
+
+
+def practice_forecast_chart(history: pd.DataFrame, forecast: pd.DataFrame, title: str) -> go.Figure:
+    """Practice history with forecast confidence band."""
+
+    return forecast_chart(
+        history,
+        forecast,
+        title,
+        empty_message="Search for a practice to view its time series.",
+    )
 
 
 def market_share_area(frame: pd.DataFrame, share_column: str, title: str) -> go.Figure:
@@ -321,6 +342,7 @@ __all__ = [
     "inequality_line",
     "market_heatmap",
     "market_share_area",
+    "forecast_chart",
     "patient_total_line",
     "practice_forecast_chart",
     "regional_patient_lines",

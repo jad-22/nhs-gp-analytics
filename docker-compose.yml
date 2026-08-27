@@ -1,0 +1,41 @@
+# Deployment on Hetzner: `docker compose pull && docker compose up -d`.
+#
+# There are no volumes. The data is baked into the image, so a refresh is a new image
+# and a restart — nothing to invalidate, nothing to migrate, and a rollback is just the
+# previous tag.
+
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-jasonadarsono/nhs-gp-analytics}/api:${API_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    environment:
+      # Cloudflare and Caddy both cache in front; these bound direct abuse.
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60/minute}
+      RATE_LIMIT_PER_DAY: ${RATE_LIMIT_PER_DAY:-2000/day}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

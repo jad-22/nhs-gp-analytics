@@ -82,3 +82,51 @@ jobs:
           # No [skip ci]: a data push is the trigger a downstream forecast-cache workflow needs.
           git commit -m "data: monthly pipeline refresh"
           git push
+
+  # Deliberately a separate job: rebuilding ~7,500 forecasts takes far longer than the
+  # data refresh and depends on heavier libraries, so a failure here must never leave
+  # the month's list-size data uncommitted.
+  forecast-cache:
+    runs-on: ubuntu-latest
+    needs: monthly-pipeline
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Rebuild forecast cache
+        # The runner has 4 vCPUs and ~16 GB; each worker loads numpy, statsmodels and
+        # statsforecast, so the pool is sized to cores rather than oversubscribed.
+        run: python scripts/build_forecast_cache.py --workers 4
+
+      - name: Verify the cache is real
+        run: pytest tests/test_forecast_cache.py -q
+
+      - name: Detect forecast changes
+        id: changes
+        run: |
+          if git diff --quiet -- data/processed/forecasts.parquet data/processed/forecast_metrics.parquet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push forecasts
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/processed/forecasts.parquet data/processed/forecast_metrics.parquet
+          git commit -m "data: rebuild forecast cache [skip ci]"
+          git push
