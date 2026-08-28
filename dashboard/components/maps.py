@@ -35,7 +35,7 @@ def practice_marker_map(frame: pd.DataFrame, title: str) -> go.Figure:
         return practice_marker_map(pd.DataFrame(), title)
 
     fig = go.Figure(
-        go.Scattermapbox(
+        go.Scattermap(
             lat=mapped["LATITUDE"],
             lon=mapped["LONGITUDE"],
             mode="markers",
@@ -57,7 +57,7 @@ def practice_marker_map(frame: pd.DataFrame, title: str) -> go.Figure:
         )
     )
     fig.update_layout(
-        mapbox=dict(
+        map=dict(
             style="open-street-map",
             center=dict(lat=52.7, lon=-1.7),
             zoom=5,
