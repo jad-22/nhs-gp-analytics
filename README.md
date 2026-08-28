@@ -313,8 +313,8 @@ Full reference, caveats and worked examples: [`docs/API.md`](docs/API.md).
 - [x] Implement monthly GitHub Actions workflow (`.github/workflows/monthly_pipeline.yml`)
 - [x] Move the schedule to a local task after CI proved unreachable from GitHub runners (DEC-013)
 - [x] Verify commit-back end to end from a clean clone (august 2026, 6,129 practices)
-- [ ] Register the scheduled task on the local machine (`docs/LOCAL_REFRESH.md`)
-- [ ] Backfill july 2026, missed while the CI runs were 403-blocked
+- [x] Backfill july 2026, missed while the CI runs were 403-blocked (2026-08-25; 2020-01 → 2026-08 now gapless)
+- [ ] Register the scheduled task on the local machine (`docs/LOCAL_REFRESH.md`) — until this is done the monthly refresh only runs when invoked by hand
 - [ ] Verify Streamlit redeploy after a successful pushed run
 
 ## Notes

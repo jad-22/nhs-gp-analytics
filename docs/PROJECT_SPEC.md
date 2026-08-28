@@ -643,17 +643,27 @@ Status note (2026-07-01): Phase 3 is complete in production. The Streamlit app, 
 
 - [x] Build `pipeline/monthly.py` entry point
 - [x] Write `monthly_pipeline.yml` GitHub Actions workflow
-- [ ] Test manual `workflow_dispatch` trigger
-- [ ] Verify commit-back and Streamlit redeploy on push
+- [x] Verify commit-back on push (august 2026, 6,129 practices, from a clean clone)
+- [~] Test manual `workflow_dispatch` trigger — largely superseded by DEC-013; the scheduled trigger is gone and `workflow_dispatch` survives only as a manual fallback
+- [x] Register the local scheduled task (`docs/LOCAL_REFRESH.md`) — DEC-013's replacement for the removed schedule; armed 2026-08-28, first scheduled fire 2026-09-01 10:30
+- [x] Verify Streamlit redeploy on push
 
 Status note (2026-07-01): Phase 4 implementation is in progress. The monthly entry point and automation workflow are now in place; remaining checklist items require a live GitHub Actions run and redeploy verification.
+
+Status note (2026-08-27): DEC-013 moved ingestion off GitHub Actions entirely after the runner IP was 403-blocked at source, so "a live GitHub Actions run" is no longer the gate. Commit-back is verified end to end; what remains is registering the local scheduled task and confirming the Streamlit redeploy.
+
+Status note (2026-08-28): Streamlit redeploy on push is confirmed, and the local scheduled task is now registered and verified — see "Verification record" in `docs/LOCAL_REFRESH.md`. Phase 4 is complete apart from the `workflow_dispatch` item, which DEC-013 has made largely moot.
+
+One residual gap is worth carrying forward: `git push` has never been exercised from the task's own non-interactive context. Both verification runs deliberately used `-NoPush`, and the on-demand task run stopped at the already-ingested guard before reaching the push. Credential Manager raising a GUI prompt under a non-interactive token would hang the run until the one-hour `ExecutionTimeLimit`. The first real proof is the september 2026 publication.
 
 ### Phase 5 — Polish (Week 4–5)
 
 - [x] Write `README.md` (project story, architecture diagram, live demo link)
 - [x] Add "About the data" page in dashboard with caveats
-- [ ] Add `tests/` with at minimum scraper + transformer coverage
-- [ ] Performance: cache heavy DS computations to disk (pre-computed Parquet outputs)
-- [ ] Add `pipeline_log` display to dashboard sidebar
+- [x] Add `tests/` with at minimum scraper + transformer coverage
+- [x] Performance: cache heavy DS computations to disk (pre-computed Parquet outputs)
+- [x] Add `pipeline_log` display to dashboard sidebar
 
 Status note (2026-07-01): README now includes a project narrative, architecture diagram, and live deployment link. Dashboard page `dashboard/pages/4_About_the_Data.py` has been added to document source provenance and known caveats.
+
+Status note (2026-08-27): the three remaining boxes were ticked retroactively — all had been delivered without the checklist being updated. Tests: `tests/` holds 12 modules including `test_scraper.py` and `test_transformer.py`. Disk caching: `scripts/build_dashboard_cache.py` and `scripts/build_forecast_cache.py` write pre-computed Parquet. Pipeline log: surfaced by `load_pipeline_log()` in `dashboard/components/filters.py` and on `dashboard/pages/4_About_the_Data.py`.
