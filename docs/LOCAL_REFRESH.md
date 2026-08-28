@@ -3,6 +3,9 @@
 The monthly ingestion runs from a scheduled task on a local machine rather than from GitHub
 Actions. This document covers why, and how to set it up.
 
+For driving a refresh manually — including the abort gates and commit message format used when an
+agent runs it on request — see [`RUNBOOK_MONTHLY_REFRESH.md`](RUNBOOK_MONTHLY_REFRESH.md).
+
 ## Why not GitHub Actions
 
 Cloudflare sits in front of `digital.nhs.uk` and returns **403 to GitHub-hosted runners on every
@@ -154,21 +157,81 @@ Useful invocations:
 .\scripts\local_refresh.ps1 -RepoPath D:\tmp\nhs-check -NoPush
 ```
 
-## Outstanding data gap
+## Verification record (2026-08-28)
 
-`origin/main` has no **july 2026** — its last successful ingest is june 2026, because the July and
-August CI runs both 403'd. The publication page is live, so once the task is set up:
+The task is registered and armed. First scheduled fire is 2026-09-01 10:30.
+
+Verified by a manual `-Month august -Year 2026 -Force -NoPush` run:
+
+| Step | Result |
+| --- | --- |
+| Scrape `digital.nhs.uk` | 200 from a residential IP; resolved `/45/E255E0/` and `/26/656B2E/` |
+| `pipeline.monthly` | exit 0, 6,129 practices |
+| `join_enrichment.py` | 514,047 rows, IMD 100%, geo 100% |
+| `build_dashboard_cache.py` | 8 parquet outputs |
+| Commit | `data: monthly pipeline refresh (august 2026)` |
+| Wall clock | ~1m45s, well inside the 1h `ExecutionTimeLimit` |
+
+Re-ingesting an already-ingested month changed **only** `data/pipeline_log.json` — every file under
+`data/processed/` came out byte-identical. The pipeline is deterministic, so a `-Force` re-run cannot
+corrupt committed data.
+
+Verified separately by an on-demand run of the registered task, which exercises the parts the manual
+run does not: `%LOCALAPPDATA%` expansion inside the task's `Arguments`, interpreter resolution
+without an activated conda env, `-NoProfile -NonInteractive` execution, log writing, and git under
+the task's own token. It reset the clone, hit the already-ingested guard, and exited 0 in about a
+second — `LastTaskResult: 0`. The reset also discarded the manual run's local commit, confirming the
+clone is self-cleaning and needs no manual tidying between runs.
+
+### Not yet verified
+
+**`git push` has never run from the task's non-interactive context.** Both verification runs used
+`-NoPush`, and the on-demand run exited at the guard before reaching the push. This is the one step
+the doc's own setup notes flag as risky: if Credential Manager decides to prompt under a
+non-interactive token, there is no UI to answer it and the run will hang until the one-hour
+`ExecutionTimeLimit` kills it. The stored `cmdkey` entry for `jad-22` is intended to prevent that,
+but it is unproven. The september 2026 publication is the first run that will actually push — check
+`LastTaskResult` and the log after it.
+
+The full ingest path has also not run under the task token; it has only been run interactively.
+
+### Principal
+
+The task is registered `LogonType: Interactive`, `RunLevel: Limited`, as `jason` — so it runs **only
+while you are logged on**. A machine left at the login screen will not refresh. `StartWhenAvailable`
+means it catches up on the next logon rather than skipping the month, so this degrades the latency
+of a refresh, not its correctness. To make it fully unattended, re-register the principal with a
+password logon type.
+
+## Data gap — closed (2026-08-28)
+
+The July and August 2026 CI runs both 403'd, leaving `origin/main` with june 2026 as its last
+successful ingest. Both months have since been ingested manually and pushed: `data/pipeline_log.json`
+on `origin/main` now records **july 2026** and **august 2026** as `success`, so the series is
+contiguous and no backfill is outstanding.
+
+One consequence for setting the task up: a plain `local_refresh.ps1 -NoPush` will now hit the
+already-ingested guard and exit 0 in about a second without touching the network. That exercises the
+guard, not the pipeline. To smoke-test the real path, force a month that is already done and hold
+the push back:
 
 ```powershell
-.\scripts\local_refresh.ps1 -Month july -Year 2026
+.\scripts\local_refresh.ps1 -Month august -Year 2026 -Force -NoPush
 ```
 
-Run it before the August refresh so the series stays contiguous.
+Inspect `git log -1 -p`, then `git reset --hard origin/main` to discard the local commit.
 
 ## Still to do
 
 The forecast cache rebuild (~2 hours, no network) should stay on GitHub-hosted runners, triggered by
-the data push this task produces. That is not wired up yet: `scripts/build_forecast_cache.py` lives
-only on the unmerged `feature/statistical-forecasters` branch. Once it lands on `main`, add a
-workflow triggered on `push` to `main` with `paths: data/processed/**`. The commit message this
-script writes deliberately omits `[skip ci]` so that trigger will fire.
+the data push this task produces. `scripts/build_forecast_cache.py` has since landed on `main`, so
+the blocker is gone — what is still missing is the workflow itself: add one triggered on `push` to
+`main` with `paths: data/processed/**`. The commit message this script writes
+(`data: monthly pipeline refresh (<month> <year>)`) deliberately omits `[skip ci]` so that trigger
+will fire.
+
+Note the ordering when wiring it up. `api_image.yml` already triggers on `push` to `main` for
+`data/processed/list_size.parquet` and `mapping.parquet`, both of which this task's commit touches —
+so the API image rebuilds immediately, against forecasts that are still the previous month's, and
+would rebuild again once the forecast cache is refreshed. Either chain the forecast rebuild ahead of
+the image build or accept the double build.
