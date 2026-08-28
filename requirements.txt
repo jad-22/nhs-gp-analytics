@@ -18,8 +18,6 @@ statsforecast>=1.7.0
 # Dashboard
 streamlit>=1.32.0
 plotly>=5.24.0  # go.Scattermap / layout.map (MapLibre) replaced the removed Scattermapbox
-folium>=0.16.0
-streamlit-folium>=0.18.0
 
 # Enrichment / geo
 geopandas>=0.14.0

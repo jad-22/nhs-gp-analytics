@@ -33,13 +33,13 @@ A publicly hosted analytics platform that ingests, processes, and visualises NHS
 |--------|----------------------|--------------|
 | 1 — List Size Trends | Practice growth/decline over time; closure/merger detection | Time series (Prophet), anomaly detection (Z-score / Isolation Forest) |
 | 2 — Clinical System Market Share | EMIS Web vs SystmOne vs Others over time by region/ICB | Share-of-market time series, migration signal detection |
-| 3 — Deprivation Analysis | Practice size vs IMD deprivation index; under-served area identification | Clustering (K-Means / UMAP), choropleth mapping |
+| 3 — Deprivation Analysis | Practice size vs IMD deprivation index; under-served area identification | Clustering (K-Means / UMAP), practice marker mapping (boundary choropleths deferred — see §8) |
 
 ### Key Portfolio Signals
 
 - Automated data pipeline (scraping → transform → Parquet → DuckDB) running on GitHub Actions
 - Multi-year time series with Prophet forecasting
-- Spatial analysis with choropleth maps (Plotly / Folium)
+- Spatial analysis with Plotly practice marker maps (MapLibre `Scattermap`)
 - Clean Streamlit dashboard hosted on Streamlit Cloud (free tier)
 - Annotated data quality handling (NHAIS→PDS source discontinuity, ICB restructures)
 
@@ -97,7 +97,7 @@ nhs-gp-analytics/
 │   └── components/
 │       ├── filters.py                 # Shared sidebar filter widgets
 │       ├── charts.py                  # Plotly chart factory functions
-│       └── maps.py                    # Choropleth / scatter map helpers
+│       └── maps.py                    # Practice marker map helpers
 │
 ├── tests/
 │   ├── test_scraper.py
@@ -533,12 +533,12 @@ prophet>=1.1.5
 scikit-learn>=1.4.0
 umap-learn>=0.5.6
 scipy>=1.12.0
+statsmodels>=0.14.0
+statsforecast>=1.7.0
 
 # Dashboard
 streamlit>=1.32.0
-plotly>=5.20.0
-folium>=0.16.0
-streamlit-folium>=0.18.0
+plotly>=5.24.0  # go.Scattermap / layout.map (MapLibre) replaced the removed Scattermapbox
 
 # Enrichment / geo
 geopandas>=0.14.0
