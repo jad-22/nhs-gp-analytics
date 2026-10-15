@@ -888,5 +888,15 @@
     "mapping_url": "https://files.digital.nhs.uk/1C/CE61A6/gp-reg-pat-prac-map.zip",
     "practices_ingested": 6128,
     "error": null
+  },
+  {
+    "run_at": "2026-10-15T09:30:11.780690Z",
+    "month": "october",
+    "year": 2026,
+    "status": "success",
+    "totals_url": "https://files.digital.nhs.uk/FB/7851F6/gp-reg-pat-prac-all.zip",
+    "mapping_url": "https://files.digital.nhs.uk/8E/6B4899/gp-reg-pat-prac-map.zip",
+    "practices_ingested": 6124,
+    "error": null
   }
 ]
